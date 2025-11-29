@@ -1,0 +1,3 @@
+H:/Dev/BetterAltTab/build/CMakeFiles/BetterAltTab.dir
+H:/Dev/BetterAltTab/build/CMakeFiles/edit_cache.dir
+H:/Dev/BetterAltTab/build/CMakeFiles/rebuild_cache.dir
