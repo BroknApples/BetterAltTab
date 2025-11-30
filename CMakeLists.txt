@@ -17,7 +17,7 @@ set(SOURCES
   src/main.cpp
   src/core/application.cpp
   src/core/widget_layer.cpp
-  src/utils/resources.rc
+  src/core/resources.rc
 )
 
 file(GLOB IMGUI_SOURCES
