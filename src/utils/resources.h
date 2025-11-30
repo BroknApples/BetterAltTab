@@ -1,0 +1,8 @@
+#ifndef RESOURCES_H
+#define RESOURCES_H
+
+
+#define IDI_BETTER_ALT_TAB_ICON 242
+
+
+#endif // RESOURCES_H

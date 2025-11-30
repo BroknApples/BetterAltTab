@@ -15,6 +15,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Set sources
 set(SOURCES
   src/main.cpp
+  src/core/application.cpp
+  src/core/widget_layer.cpp
+  src/utils/resources.rc
 )
 
 file(GLOB IMGUI_SOURCES
