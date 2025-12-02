@@ -16,7 +16,7 @@ Simple wrapper for the nlohmann json library.
 // May need to be modified as I used custom print
 // statements in the project I created this in.
 //#include "utils.hpp"
-#include "json.hpp" // Change to path to nlohmann::json
+#include "../json/json.hpp" // Change to path to nlohmann::json
 
 namespace fs = std::filesystem;
 

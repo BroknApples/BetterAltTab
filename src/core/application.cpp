@@ -1,14 +1,11 @@
 #include "application.hpp"
 
-// ---------------- General variables ----------------
-int Application::_screen_max_width = 0;
-int Application::_screen_max_height = 0;
-
-
+// ---------------- DirectX variables ----------------
 ID3D11Device*           Application::_g_pd3dDevice = nullptr;
 ID3D11DeviceContext*    Application::_g_pd3dDeviceContext = nullptr;
 IDXGISwapChain*         Application::_g_pSwapChain = nullptr;
 ID3D11RenderTargetView* Application::_g_mainRenderTargetView = nullptr;
+
 
 // ---------------- Tray variables ----------------
 WNDCLASSEX     Application::_wc = {};
@@ -20,10 +17,10 @@ bool           Application::_settings_visible = false;
 
 
 // ---------------- Gui layers ----------------
-WidgetLayer Application::_overlay_layer;
-WidgetLayer Application::_settings_layer;
-std::vector<WidgetLayer> Application::_tab_group_layers;
-WidgetLayer Application::_hotkey_layer;
+std::unique_ptr<WidgetLayer>              Application::_overlay_layer;
+std::unique_ptr<WidgetLayer>              Application::_settings_layer;
+std::unique_ptr<std::vector<WidgetLayer>> Application::_tab_group_layers;
+std::unique_ptr<WidgetLayer>              Application::_hotkey_layer;
 
 
 // ---------------- DirectX functions ----------------
@@ -90,17 +87,22 @@ void Application::cleanupDeviceD3D() {
 
 // ----------------- Gui functions -----------------
 void Application::setupWidgetLayers() {
+  // ---------------- Overlay window ----------------
   constexpr ImGuiWindowFlags OVERLAY_FLAGS = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
-  _overlay_layer = WidgetLayer{_WINDOW_NAME, 0.1f, nullptr, OVERLAY_FLAGS};
-  _overlay_layer.addText("BetterAltTab Overlay Active");
-  _overlay_layer.addText("Use the tray icon to open Settings or Exit");
+  _overlay_layer = std::make_unique<WidgetLayer>(_WINDOW_NAME, 0.1f, nullptr, OVERLAY_FLAGS);
+  _overlay_layer->addText("HelpText1", "BetterAltTab Overlay Active");
+  _overlay_layer->addText("HelpText2", "Use the tray icon to open Settings or Exit");
   
   // ---------------- Settings window ----------------
-  _settings_layer = WidgetLayer{"Settings"};
-  _settings_layer.addText("This is the settings page");
-  _settings_layer.addButton("Close", [](bool val) {
-    _settings_visible = false;
+  _settings_layer = std::make_unique<WidgetLayer>("Settings", 1.0f, &_settings_visible);
+  _settings_layer->addText("DescriptionText1", "This is the settings page");
+  _settings_layer->addButton("CloseButton", "Close", false, [](bool val) {
+    setSettingsVisibility(false);
   });
+  _settings_layer->setGridSize(2, 2);
+
+  _tab_group_layers = std::make_unique<std::vector<WidgetLayer>>();
+  _hotkey_layer = std::make_unique<WidgetLayer>("Hotkeys");
 }
 
 
@@ -204,7 +206,9 @@ LRESULT CALLBACK Application::WndProc(HWND hwnd, UINT msg, WPARAM w_param, LPARA
 // --------------------------------------------------------
 
 
-void Application::createApplication(HINSTANCE& h_instance) {
+bool Application::createApplication(HINSTANCE& h_instance) {
+  if (!Config::initialized) return false;
+
   // Load Icon
   _h_icon = LoadIcon(h_instance, MAKEINTRESOURCE(IDI_BETTER_ALT_TAB_ICON));
 
@@ -224,15 +228,12 @@ void Application::createApplication(HINSTANCE& h_instance) {
     MessageBoxA(NULL, "ICON RESOURCE NOT FOUND!", "ERROR", MB_OK);
   }
 
-  _screen_max_width = GetSystemMetrics(SM_CXSCREEN);
-  _screen_max_height = GetSystemMetrics(SM_CYSCREEN);
-
   _hwnd = CreateWindowEx(
     WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW,
     _wc.lpszClassName, _T_WINDOW_NAME,
     WS_POPUP,
     0, 0, // Top-Left corner
-    _screen_max_width, _screen_max_height,
+    Config::monitor_size.x, Config::monitor_size.y,
     NULL, NULL, _wc.hInstance, NULL
   );
 
@@ -243,7 +244,7 @@ void Application::createApplication(HINSTANCE& h_instance) {
   if (!createDeviceD3D(_hwnd)) {
     cleanupDeviceD3D();
     UnregisterClass(_wc.lpszClassName, _wc.hInstance);
-    return;
+    return false;
   }
 
   // Add tray icon
@@ -260,6 +261,7 @@ void Application::createApplication(HINSTANCE& h_instance) {
 
   // Setup widget layers
   setupWidgetLayers();
+  return true;
 }
 
 
@@ -288,9 +290,9 @@ void Application::runApplication() {
     ImGui::NewFrame();
 
     // ------------------------ Render UI ------------------------
-    _overlay_layer.render();
+    _overlay_layer->render();
     if (_settings_visible) {
-      _settings_layer.render();
+      _settings_layer->render();
     }
     // TODO: One Widget layer for the 10 quick nav hotkeys. (bottom of the screen by default, but can be easily moved to the top, left, right, or your own placement).
     // TODO: A vector of layers for the many tab groups you have set up.

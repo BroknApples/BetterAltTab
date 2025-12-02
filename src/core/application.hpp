@@ -7,12 +7,15 @@
 #include <d3d11.h>
 #include <tchar.h>
 #include <string>
+#include <memory>
 
 #include "imgui.h"
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx11.h"
 #include "resources.h"
 #include "widget_layer.hpp"
+#include "widget_container.hpp"
+#include "config.hpp"
 
 
 // Setup ImGUI WndProc
@@ -31,8 +34,6 @@ class Application {
     static constexpr auto _T_WINDOW_NAME = TEXT("Overlay"); // Name of the window (TEXT version).
     static constexpr const char* _WINDOW_NAME = "Overlay"; // Name of the window.
     static constexpr const char* _SYSTEM_TRAY_NAME = "BetterAltTab Overlay"; // Name shown in the system tray.
-    static int _screen_max_width;
-    static int _screen_max_height;
 
 
     // ---------------- DirectX variables ----------------
@@ -52,10 +53,10 @@ class Application {
 
 
     // ---------------- Gui layers ----------------
-    static WidgetLayer _overlay_layer;
-    static WidgetLayer _settings_layer;
-    static std::vector<WidgetLayer> _tab_group_layers;
-    static WidgetLayer _hotkey_layer;
+    static std::unique_ptr<WidgetLayer> _overlay_layer;
+    static std::unique_ptr<WidgetLayer> _settings_layer;
+    static std::unique_ptr<std::vector<WidgetLayer>> _tab_group_layers;
+    static std::unique_ptr<WidgetLayer> _hotkey_layer;
 
 
     // ---------------- Functions  ----------------
@@ -118,6 +119,15 @@ class Application {
 
 
     /**
+     * @brief Sets the visibility of the settings panel
+     */
+    static void setSettingsVisibility(const bool value) {
+      _settings_visible = value;
+    }
+
+
+
+    /**
      * @brief Event-handler for the window
      * @param hwnd: Window contetx
      * @param msg: Message
@@ -137,8 +147,10 @@ class Application {
 
     /**
      * @brief Setup application
+     * @param h_instance: Handle of the process
+     * @returns bool: True/False of success
      */
-    static void createApplication(HINSTANCE& h_instance);
+    static bool createApplication(HINSTANCE& h_instance);
 
 
     /**

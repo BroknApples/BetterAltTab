@@ -17,6 +17,8 @@ set(SOURCES
   src/main.cpp
   src/core/application.cpp
   src/core/widget_layer.cpp
+  src/core/widget_container.cpp
+  src/core/config.cpp
   src/core/resources.rc
 )
 
