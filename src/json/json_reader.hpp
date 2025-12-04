@@ -7,7 +7,7 @@ Simple wrapper for the nlohmann json library.
 #ifndef JSON_READER_HPP
 #define JSON_READER_HPP
 
-#include <iostream>
+#include <iostream> 
 #include <string>
 #include <vector>
 #include <fstream>
@@ -50,7 +50,7 @@ class JsonReader {
       // Attempt to open file
       std::ifstream file(filename);
       if (!file.is_open()) {
-        std::cout << "Could not open config file: " << filename << std::endl;
+        std::cerr << "Could not open config file: " << filename << std::endl;
         return false;
       }
 
@@ -59,7 +59,7 @@ class JsonReader {
         file >> _json;
       } catch (const std::exception& e) {
         // Error occured, so early return.
-        std::cout << "Failed to parse config JSON: " << e.what() << std::endl;
+        std::cerr << "Failed to parse config JSON: " << e.what() << std::endl;
         return false;
       }
 
@@ -95,7 +95,7 @@ class JsonReader {
 
       // Check if the file could be opened
       if (!file) {
-        std::cout << "Error: Could not open file for writing" << std::endl;
+        std::cerr << "Error: Could not open file for writing" << std::endl;
         return false;
       }
 
@@ -104,7 +104,7 @@ class JsonReader {
 
       // Check if writing to the file failed
       if (!file) {
-        std::cout << "Error: Failed to write to file '" << filename << "'" << std::endl;
+        std::cerr << "Error: Failed to write to file '" << filename << "'" << std::endl;
         return false;
       }
 
@@ -164,7 +164,7 @@ class JsonReader {
         return current->get<T>();
       }
       catch (const std::exception& e) {
-        std:cout << "Error accessing key '" << key << "': " << e.what() << std::endl;
+        std::cerr << "Error accessing key '" << key << "': " << e.what() << std::endl;
         return default_value;
       }
     }

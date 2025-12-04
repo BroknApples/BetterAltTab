@@ -4,19 +4,41 @@
 static uint64_t WIDGET_UNIQUE_ID = 1;
 
 
-WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_open, ImGuiWindowFlags flags)
+// ------------------- Private functions -------------------
+void WidgetLayer::_updateActualSize() {
+  if (_autofit) {
+    // TODO: HERE
+  }
+  else {
+    float determined_width = std::clamp(_curr_width, _min_width, std::max(_min_width, _max_width));
+    float determined_height = std::clamp(_curr_height, _min_height, std::max(_min_height, _max_height));
+    _actual_size = ImVec2(determined_width, determined_height);
+  }
+}
+
+
+// ------------------- Constructor -------------------
+WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_open, ImGuiWindowFlags window_flags)
 : _visible(true)
 , _layer_name(layer_name)
 , _layer_transparency(transparency)
 , _p_open(p_open)
-, _flags(flags)
-, _layout(layer_name) {
+, _window_flags(window_flags)
+, _layout(layer_name)
+, _min_width(0.0f)
+, _min_height(0.0f)
+, _max_width(Config::monitor_size.x)
+, _max_height(Config::monitor_size.y)
+, _curr_width(400.0f)
+, _curr_height(300.0f)
+, _actual_size({400.0f, 300.0f}) {
   _layout = WidgetContainer(layer_name);
-  _layout.setLayout(LayoutType::Grid);  // default layout
+  _layout.setLayout(LayoutType::Grid);  // Default layout
   _layout.setGridSize(2, 2);
 }
 
 
+// ------------------- Public functions -------------------
 void WidgetLayer::addText(const std::string& name, const std::string& label) {
   _layout.addItem(ImGuiWidget{
     WIDGET_UNIQUE_ID++,
@@ -56,10 +78,11 @@ void WidgetLayer::render() {
     ImGui::SetNextWindowBgAlpha(_layer_transparency);
   }
 
-  ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowSize(_actual_size, ImGuiCond_FirstUseEver);
+  //ImGui::SetNextWindowSize(_actual_size, ImGuiCond_Always);
   
-  if (ImGui::Begin(_layer_name, _p_open, _flags)) {
+  if (ImGui::Begin(_layer_name, _p_open, _window_flags)) {
     _layout.render();
-    ImGui::End();
   }
+  ImGui::End();
 }

@@ -4,7 +4,7 @@
 #include "imgui.h"
 #include "windows.h"
 
-#include "../utils/json_reader.hpp"
+#include "../json/json_reader.hpp"
 
 /**
  * @brief Holds configuration data for the application

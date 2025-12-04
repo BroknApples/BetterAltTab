@@ -15,10 +15,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Set sources
 set(SOURCES
   src/main.cpp
+  src/core/config.cpp
   src/core/application.cpp
   src/core/widget_layer.cpp
   src/core/widget_container.cpp
-  src/core/config.cpp
+  src/core/windows_helpers.cpp
   src/core/resources.rc
 )
 

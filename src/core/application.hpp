@@ -12,10 +12,12 @@
 #include "imgui.h"
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx11.h"
+
+#include "config.hpp"
 #include "resources.h"
 #include "widget_layer.hpp"
 #include "widget_container.hpp"
-#include "config.hpp"
+#include "windows_helpers.hpp"
 
 
 // Setup ImGUI WndProc
@@ -48,8 +50,7 @@ class Application {
     static NOTIFYICONDATA _nid;
     static HWND _hwnd;
     static HICON _h_icon;
-    static bool _overlay_visible;
-    static bool _settings_visible;
+    static HWINEVENTHOOK _hook;
 
 
     // ---------------- Gui layers ----------------
@@ -59,19 +60,25 @@ class Application {
     static std::unique_ptr<WidgetLayer> _hotkey_layer;
 
 
+    // ---------------- Misc variables ----------------
+    static bool _overlay_visible;
+    static bool _settings_visible;
+    static std::vector<WindowInfo> _visible_windows;
+
+
     // ---------------- Functions  ----------------
 
 
     /**
      * @brief Creates a render target
      */
-    static void createRenderTarget();
+    static void _createRenderTarget();
 
 
     /**
      * @brief Cleans up the render target
      */
-    static void cleanupRenderTarget();
+    static void _cleanupRenderTarget();
 
 
     /**
@@ -79,49 +86,49 @@ class Application {
      * @param hwnd Window for the device to draw on
      * @returns bool: True/False of success
      */
-    static bool createDeviceD3D(HWND hwnd);
+    static bool _createDeviceD3D(HWND hwnd);
 
 
     /**
      * @brief Cleans up the DirectX device
      */
-    static void cleanupDeviceD3D();
+    static void _cleanupDeviceD3D();
 
 
     /**
      * @brief Sets up the widget layers
      */
-    static void setupWidgetLayers();
+    static void _setupWidgetLayers();
 
 
     /**
      * @brief Adds an icon for the application to the system tray.
      */
-    static void addTrayIcon();
+    static void _addTrayIcon();
 
 
     /**
      * @brief Removes the icon from the system tray.
      */
-    static void removeTrayIcon();
+    static void _removeTrayIcon();
 
 
     /**
      * @brief Shows the context menu in the system tray
      */
-    static void showTrayMenu();
+    static void _showTrayMenu();
 
 
     /**
      * @brief Toggles the visibility of the overlay
      */
-    static void toggleOverlayVisible();
+    static void _toggleOverlayVisible();
 
 
     /**
      * @brief Sets the visibility of the settings panel
      */
-    static void setSettingsVisibility(const bool value) {
+    static void _setSettingsVisibility(const bool value) {
       _settings_visible = value;
     }
 
@@ -135,7 +142,21 @@ class Application {
      * @param l_param: lParam
      * @returns LRESULT: Result of the DefWindowProc function
      */
-    static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param);
+    static LRESULT CALLBACK _WndProc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param);
+
+
+    /**
+     * @brief Callback for Windows events
+     * @param hook: Hook which triggered this callback
+     * @param event: Type of event
+     * @param hwnd: The window handle associated with the event
+     * @param id_object: UI object that generated the event
+     * @param id_child: The specific child UI element that triggered the event
+     * @param event_thread: The thread ID that triggered this event
+     * @param event_time: The time this event was triggered
+     */
+    static void CALLBACK _WinEventProc(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG id_object,
+      LONG id_child, DWORD event_thread, DWORD event_time);
     
 
   public:

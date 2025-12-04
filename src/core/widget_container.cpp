@@ -116,10 +116,11 @@ void WidgetContainer::renderVertical() {
     ImGuiWidget& w = _items[i];
     ImGui::PushID(w.id);
 
-    renderDragSource(w);
+    //renderDragSource(w);
 
     // content box for visual separation
     ImGui::BeginChild(("item_" + std::to_string(w.id)).c_str(), ImVec2(-1, 40), true);
+    renderDragSource(w);
     w.render();
     ImGui::EndChild();
 
@@ -137,9 +138,10 @@ void WidgetContainer::renderHorizontal() {
     ImGuiWidget& w = _items[i];
     ImGui::PushID(w.id);
 
-    renderDragSource(w);
+    //renderDragSource(w);
 
     ImGui::BeginChild(("item_" + std::to_string(w.id)).c_str(), ImVec2(120, 60), true);
+    renderDragSource(w);
     w.render();
     ImGui::EndChild();
 
@@ -163,7 +165,7 @@ void WidgetContainer::renderRectStackVertical() {
     ImGuiWidget& w = _items[i];
     ImGui::PushID(w.id);
 
-    renderDragSource(w);
+    //renderDragSource(w);
 
     // A fixed-size box for the item
     ImGui::BeginChild(
@@ -173,6 +175,7 @@ void WidgetContainer::renderRectStackVertical() {
       ImGuiWindowFlags_NoScrollbar  // keeps it clean
     );
 
+    renderDragSource(w);
     w.render();
 
     ImGui::EndChild();
@@ -197,10 +200,11 @@ void WidgetContainer::renderCell(int index) {
   ImGuiWidget& w = _items[index];
   ImGui::PushID(w.id);
 
-  renderDragSource(w);
+  //renderDragSource(w);
 
   // Render the widget inside a child so it has bounds and background
   ImGui::BeginChild(("cell_" + std::to_string(w.id)).c_str(), ImVec2(-1, 60), false);
+  renderDragSource(w);
   w.render();
   ImGui::EndChild();
 

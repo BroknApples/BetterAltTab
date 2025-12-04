@@ -9,6 +9,8 @@
 #include <cstdint>
 
 #include "imgui.h"
+
+#include "config.hpp"
 #include "widget_types.hpp"
 #include "widget_container.hpp"
 
@@ -19,7 +21,20 @@ class WidgetLayer {
     const char* _layer_name;
     float _layer_transparency;
     bool* _p_open;
-    ImGuiWindowFlags _flags;
+    ImGuiWindowFlags _window_flags;
+
+    // -------------- Sizing --------------
+    float _min_width, _max_width;
+    float _min_height, _max_height;
+    float _curr_width, _curr_height;
+    ImVec2 _actual_size; // Only to be used internally
+    bool _autofit; // TODO: Implement this next
+
+
+    /**
+     * @brief Updates the actual size of the widget
+     */
+    void _updateActualSize();
 
   public:
     /**
@@ -27,9 +42,9 @@ class WidgetLayer {
      * @param layer_name: Name of the widget layer.
      * @param layer_transparency: Transparency of the layer
      * @param p_open: X box to close the window
-     * @param flags: ImGui window flags
+     * @param window_flags: ImGui window flags
      */
-     WidgetLayer(const char* layer_name, float transparency = 1.0f, bool* p_open = nullptr, ImGuiWindowFlags flags = 0);
+     WidgetLayer(const char* layer_name, float transparency = 1.0f, bool* p_open = nullptr, ImGuiWindowFlags window_flags = 0);
 
 
     /**
@@ -112,6 +127,67 @@ class WidgetLayer {
      */
     void setGridSize(int r, int c) {
       _layout.setGridSize(r, c);
+    }
+
+
+    /**
+     * @brief Sets the size of each cell to be rendered
+     * @param w: Width
+     * @param h: Height
+     */
+    void setCellSize(const float w, const float h) {
+      _curr_width = std::clamp(w, 0.0f, Config::monitor_size.x);
+      _curr_height = std::clamp(h, 0.0f, Config::monitor_size.y);
+      _updateActualSize();
+    }
+
+    /**
+     * @brief Sets the size of each cell to be rendered
+     * @param w: Width
+     * @param h: Height
+     */
+    void setMinCellSize(const float w, const float h) {
+      _min_width = std::clamp(w, 0.0f, Config::monitor_size.x);
+      _min_height = std::clamp(h, 0.0f, Config::monitor_size.y);
+    }
+
+    /**
+     * @brief Sets the size of each cell to be rendered
+     * @param w: Width
+     * @param h: Height
+     */
+    void setMaxCellSize(const float w, const float h) {
+      _max_width = std::clamp(w, 0.0f, Config::monitor_size.x);
+      _max_height = std::clamp(h, 0.0f, Config::monitor_size.y);
+    }
+
+
+    /**
+     * @brief Dynamically sets the size of each cell to match the largest widget.
+     * @param value: Value to set
+     */
+    void setAutofit(const bool value) {
+      _autofit = value;
+    }
+
+
+    /**
+     * @brief Toggles the window to be resizeable
+     * @param value: Value to set
+     */
+    void toggleResizable(const bool value) {
+      if (value) {
+        // allow resizing → remove the NoResize flag
+        _window_flags &= ~ImGuiWindowFlags_NoResize;
+      } else {
+          // disable resizing → add the NoResize flag
+          _window_flags |= ImGuiWindowFlags_NoResize;
+      }
+    }
+
+
+    const bool isResizable() const {
+      return (_window_flags & ImGuiWindowFlags_NoResize) == 0;
     }
 };
 

@@ -63,12 +63,6 @@ class WidgetContainer {
     int _cols;
     bool _needs_sorting;
 
-    // Sizing
-    int _min_width, _max_width;
-    int _min_height, _max_height;
-    int _curr_width, _curr_height;
-    bool _autofit; // TODO: Implement this next
-
     std::vector<ImGuiWidget> _items;
 
     
