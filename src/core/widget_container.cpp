@@ -57,21 +57,21 @@ WidgetContainer::~WidgetContainer() {
 
 void WidgetContainer::render() {
   if (_needs_sorting) {
-    applySorting();
+    _applySorting();
     _needs_sorting = false;
   }
 
   switch (_layout) {
-    case LayoutType::Grid:               renderGrid(); break;
-    case LayoutType::VerticalList:       renderVertical(); break;
-    case LayoutType::HorizontalList:     renderHorizontal(); break;
-    case LayoutType::RectStackVertical:  renderRectStackVertical(); break;
-    default:                             renderGrid(); break; // Default layout is a grid
+    case LayoutType::Grid:               _renderGrid(); break;
+    case LayoutType::VerticalList:       _renderVertical(); break;
+    case LayoutType::HorizontalList:     _renderHorizontal(); break;
+    case LayoutType::RectStackVertical:  _renderRectStackVertical(); break;
+    default:                             _renderGrid(); break; // Default layout is a grid
   }
 }
 
 
-void WidgetContainer::applySorting() {
+void WidgetContainer::_applySorting() {
   if (_sort_mode == SortMode::Alphabetical) {
     std::stable_sort(_items.begin(), _items.end(),
       [](auto& a, auto& b){
@@ -88,7 +88,7 @@ void WidgetContainer::applySorting() {
 }
 
 
-void WidgetContainer::renderGrid() {
+void WidgetContainer::_renderGrid() {
   // prevent invalid table
   if (_cols <= 0) return;
 
@@ -98,7 +98,7 @@ void WidgetContainer::renderGrid() {
   int index = 0;
   for (int r = 0; r < _rows; r++) {
     for (int c = 0; c < _cols; c++) {
-      renderCell(index++);
+      _renderCell(index++);
     }
   }
 
@@ -108,10 +108,10 @@ void WidgetContainer::renderGrid() {
 
 // --------------------- Vertical list ---------------------
 
-void WidgetContainer::renderVertical() {
+void WidgetContainer::_renderVertical() {
   for (int i = 0; i <= static_cast<int>(_items.size()); ++i) {
     // we render drop target before each item (and after last)
-    renderDropTarget(i);
+    _renderDropTarget(i);
 
     if (i == static_cast<int>(_items.size())) break;
 
@@ -122,7 +122,7 @@ void WidgetContainer::renderVertical() {
 
     // content box for visual separation
     ImGui::BeginChild(("item_" + std::to_string(w.id)).c_str(), ImVec2(-1, 40), true);
-    renderDragSource(w);
+    _renderDragSource(w);
     w.render();
     ImGui::EndChild();
 
@@ -132,9 +132,9 @@ void WidgetContainer::renderVertical() {
 
 // --------------------- Horizontal list ---------------------
 
-void WidgetContainer::renderHorizontal() {
+void WidgetContainer::_renderHorizontal() {
   for (int i = 0; i <= static_cast<int>(_items.size()); ++i) {
-    renderDropTarget(i);
+    _renderDropTarget(i);
 
     if (i == static_cast<int>(_items.size())) break;
 
@@ -144,7 +144,7 @@ void WidgetContainer::renderHorizontal() {
     //renderDragSource(w);
 
     ImGui::BeginChild(("item_" + std::to_string(w.id)).c_str(), ImVec2(120, 60), true);
-    renderDragSource(w);
+    _renderDragSource(w);
     w.render();
     ImGui::EndChild();
 
@@ -158,11 +158,11 @@ void WidgetContainer::renderHorizontal() {
 
 // --------------------- Vertical card list ---------------------
 
-void WidgetContainer::renderRectStackVertical() {
+void WidgetContainer::_renderRectStackVertical() {
   const ImVec2 CARD_SIZE = ImVec2(-1, 100); // wide → fixed height
 
   for (int i = 0; i <= (int)_items.size(); ++i) {
-    renderDropTarget(i);
+    _renderDropTarget(i);
 
     if (i == _items.size()) break;
 
@@ -179,7 +179,7 @@ void WidgetContainer::renderRectStackVertical() {
       ImGuiWindowFlags_NoScrollbar  // keeps it clean
     );
 
-    renderDragSource(w);
+    _renderDragSource(w);
     w.render();
 
     ImGui::EndChild();
@@ -190,11 +190,11 @@ void WidgetContainer::renderRectStackVertical() {
 }
 
 
-void WidgetContainer::renderCell(int index) {
+void WidgetContainer::_renderCell(int index) {
   ImGui::TableNextColumn();
 
   // Show drop target between cells (so drop into empty cells works)
-  renderDropTarget(index);
+  _renderDropTarget(index);
 
   if (index >= static_cast<int>(_items.size())) {
     // empty cell
@@ -208,7 +208,7 @@ void WidgetContainer::renderCell(int index) {
 
   // Render the widget inside a child so it has bounds and background
   ImGui::BeginChild(("cell_" + std::to_string(w.id)).c_str(), ImVec2(-1, 60), false);
-  renderDragSource(w);
+  _renderDragSource(w);
   w.render();
   ImGui::EndChild();
 
@@ -216,7 +216,7 @@ void WidgetContainer::renderCell(int index) {
 }
 
 
-void WidgetContainer::renderDragSource(ImGuiWidget& item) {
+void WidgetContainer::_renderDragSource(ImGuiWidget& item) {
   if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
     ImGui::SetDragDropPayload("LAYOUT_ITEM", &item.id, sizeof(int));
     ImGui::Text("Dragging widget %d", item.id);
@@ -225,18 +225,18 @@ void WidgetContainer::renderDragSource(ImGuiWidget& item) {
 }
 
 
-void WidgetContainer::renderDropTarget(int index) {
+void WidgetContainer::_renderDropTarget(int index) {
   if (ImGui::BeginDragDropTarget()) {
     if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("LAYOUT_ITEM")) {
       int draggedID = *(int*)payload->Data;
-      moveItemBetweenLayouts(draggedID, *this, index);
+      _moveItemBetweenLayouts(draggedID, *this, index);
     }
     ImGui::EndDragDropTarget();
   }
 }
 
 
-void WidgetContainer::moveItemBetweenLayouts(int item_id, WidgetContainer& target, int target_index) {
+void WidgetContainer::_moveItemBetweenLayouts(int item_id, WidgetContainer& target, int target_index) {
   WidgetContainer* source = nullptr;
   ImGuiWidget moved;
 

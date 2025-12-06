@@ -126,25 +126,68 @@ void focusWindow(HWND hwnd) {
 
 // --------------------- Window Capturing ---------------------
 
-void bitmapToRGBA(HBITMAP bmp, std::vector<uint8_t>& output) {
+void bitmapToBGRA(HBITMAP bmp, std::vector<uint8_t>& pixels) {
+  int w, h; // Dummy size params
+  bitmapToBGRA(bmp, pixels, w, h);  
+}
+
+
+void bitmapToBGRA(HBITMAP bmp, std::vector<uint8_t>& pixels, int& width, int& height) {
   BITMAP info;
   GetObject(bmp, sizeof(BITMAP), &info);
-  int w = info.bmWidth;
-  int h = info.bmHeight;
+  width = info.bmWidth;
+  height = info.bmHeight;
 
   BITMAPINFO bi;
   ZeroMemory(&bi, sizeof(bi));
   bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-  bi.bmiHeader.biWidth = w;
-  bi.bmiHeader.biHeight = -h; // top-down
+  bi.bmiHeader.biWidth = width;
+  bi.bmiHeader.biHeight = -height; // top-down
   bi.bmiHeader.biPlanes = 1;
   bi.bmiHeader.biBitCount = 32;
   bi.bmiHeader.biCompression = BI_RGB;
 
-  output.resize(w * h * 4);
+  pixels.resize(width * height * 4);
   HDC hdc = CreateCompatibleDC(NULL);
-  GetDIBits(hdc, bmp, 0, h, output.data(), &bi, DIB_RGB_COLORS);
+  GetDIBits(hdc, bmp, 0, height, pixels.data(), &bi, DIB_RGB_COLORS);
   DeleteDC(hdc);
+
+  // Alpha shall be 255 for all places.
+  for (size_t i = 0; i < pixels.size(); i += 4) {
+    pixels[i + 3] = 255; // set alpha to opaque
+  }
+}
+
+
+ID3D11ShaderResourceView* bitmapToShaderResourceView(HBITMAP h_bmp, ID3D11Device* pd3d_device) {
+  std::vector<uint8_t> pixels;
+  int width;
+  int height;
+  bitmapToBGRA(h_bmp, pixels, width, height);
+
+  // Create DX11 texture
+  D3D11_TEXTURE2D_DESC desc = {};
+  desc.Width              = width;
+  desc.Height             = height;
+  desc.MipLevels          = 1;
+  desc.ArraySize          = 1;
+  desc.Format             = DXGI_FORMAT_B8G8R8A8_UNORM;
+  desc.SampleDesc.Count   = 1;
+  desc.Usage              = D3D11_USAGE_DEFAULT;
+  desc.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
+
+  D3D11_SUBRESOURCE_DATA sub = {};
+  sub.pSysMem = pixels.data();
+  sub.SysMemPitch = width * 4;
+
+  ID3D11Texture2D* tex = nullptr;
+  pd3d_device->CreateTexture2D(&desc, &sub, &tex);
+
+  ID3D11ShaderResourceView* srv = nullptr;
+  pd3d_device->CreateShaderResourceView(tex, NULL, &srv);
+  tex->Release();
+
+  return srv;
 }
 
 
@@ -197,7 +240,7 @@ HBITMAP captureWindow(HWND hwnd) {
   HDC h_mem_dc = CreateCompatibleDC(h_dc);
 
   HBITMAP h_bitmap = CreateCompatibleBitmap(h_dc, width, height);
-  HBITMAP h_old = (HBITMAP)SelectObject(h_mem_dc, h_old);
+  HBITMAP h_old = (HBITMAP)SelectObject(h_mem_dc, h_bitmap);
 
   PrintWindow(hwnd, h_mem_dc, PW_RENDERFULLCONTENT);
 
@@ -219,8 +262,8 @@ HBITMAP captureVisibleWindow(HWND hwnd) {
   HDC h_window_dc = GetDC(hwnd);
   HDC h_mem_dc = CreateCompatibleDC(h_window_dc);
 
-  HBITMAP hBitmap = CreateCompatibleBitmap(h_window_dc, width, height);
-  HBITMAP h_old = (HBITMAP)SelectObject(h_mem_dc, hBitmap);
+  HBITMAP h_bitmap = CreateCompatibleBitmap(h_window_dc, width, height);
+  HBITMAP h_old = (HBITMAP)SelectObject(h_mem_dc, h_bitmap);
 
   BitBlt(h_mem_dc, 0, 0, width, height, h_window_dc, 0, 0, SRCCOPY);
 
@@ -228,7 +271,7 @@ HBITMAP captureVisibleWindow(HWND hwnd) {
   DeleteDC(h_mem_dc);
   ReleaseDC(hwnd, h_window_dc);
 
-  return hBitmap; // caller must delete with DeleteObject()
+  return h_bitmap; // caller must delete with DeleteObject()
 }
 
 
@@ -280,4 +323,21 @@ void DwmThumbnail::unregisterThumbnail() {
     DwmUnregisterThumbnail(_thumbnail);
     _thumbnail = nullptr;
   }
+}
+
+
+
+// ------------------ Premade capturing functions ------------------
+
+void buildWindowTextureFromHwnd(HWND hwnd, ID3D11Device* pd3d_device, const int width, const int height, ID3D11ShaderResourceView*& tex) {
+  // Create bitmaps
+  HBITMAP bmp = captureWindow(hwnd);
+  HBITMAP downscaled_bmp = downscaleBitmap(bmp, width, height);
+
+  // Build the texture
+  tex = bitmapToShaderResourceView(downscaled_bmp, pd3d_device);
+
+  // Cleanup GDI bitmaps
+  DeleteObject(bmp);
+  DeleteObject(downscaled_bmp);
 }

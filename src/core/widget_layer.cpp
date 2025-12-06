@@ -1,6 +1,7 @@
 #include "widget_layer.hPP"
 
 
+static uint64_t TOOLBAR_WIDGET_UNIQUE_ID = 1;
 static uint64_t WIDGET_UNIQUE_ID = 1;
 
 
@@ -21,36 +22,128 @@ void WidgetLayer::_updateActualSize() {
 void WidgetLayer::_renderToolbar() {
   if (_toolbar_side == Top || _toolbar_side == Bottom) {
     // Horizontal toolbar
-    if (ImGui::Button("A")) {}
-    ImGui::SameLine();
-    if (ImGui::Button("B")) {}
-    ImGui::SameLine();
-    if (ImGui::Button("C")) {}
+    _toolbar->render();
+    // if (ImGui::Button("A")) {}
+    // ImGui::SameLine();
+    // if (ImGui::Button("B")) {}
+    // ImGui::SameLine();
+    // if (ImGui::Button("C")) {}
   }
   else {
     // Vertical toolbar
-    if (ImGui::Button("A")) {}
-    if (ImGui::Button("B")) {}
-    if (ImGui::Button("C")) {}
+    _toolbar->render();
+    // if (ImGui::Button("A")) {}
+    // if (ImGui::Button("B")) {}
+    // if (ImGui::Button("C")) {}
   }
+}
+
+
+void WidgetLayer::_renderInternalWithToolbar() {
+  // Call set functions
+  for (auto& item : _layout.getItems()) {
+    std::visit([](auto& w){
+      if (w.set_function)w.set_function();
+    }, item.data);
+  }
+  for (auto& item : _toolbar->getItems()) {
+    std::visit([](auto& w){
+      if (w.set_function) w.set_function();
+    }, item.data);
+  }
+
+  const float thickness = 30.0f;
+  ImVec2 avail = ImGui::GetContentRegionAvail();
+
+  // --- TOP ---
+  if (_toolbar_side == ToolbarSide::Top) {
+    ImGui::BeginChild("Toolbar", ImVec2(avail.x, thickness), false);
+    _renderToolbar();
+    ImGui::EndChild();
+  }
+
+  // --- LEFT ---
+  if (_toolbar_side == ToolbarSide::Left) {
+    ImGui::BeginChild("Toolbar", ImVec2(thickness, avail.y), false);
+    _renderToolbar();
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+  }
+
+  // --- CONTENT ---
+  ImVec2 content_size = avail;
+
+  if (_toolbar_side == ToolbarSide::Top ||
+      _toolbar_side == ToolbarSide::Bottom) {
+    content_size.y -= thickness;
+  }
+  else if (_toolbar_side == ToolbarSide::Left ||
+          _toolbar_side == ToolbarSide::Right) {
+    content_size.x -= thickness;
+  }
+
+  ImGui::BeginChild("Content", content_size, false);
+  _layout.render();
+  ImGui::EndChild();
+
+  // --- RIGHT ---
+  if (_toolbar_side == ToolbarSide::Right) {
+    ImGui::SameLine();
+    ImGui::BeginChild("Toolbar", ImVec2(thickness, avail.y), false);
+    _renderToolbar();
+    ImGui::EndChild();
+  }
+
+  // --- BOTTOM ---
+  if (_toolbar_side == ToolbarSide::Bottom) {
+    ImGui::BeginChild("Toolbar", ImVec2(avail.x, thickness), false);
+    _renderToolbar();
+    ImGui::EndChild();
+  }
+}
+
+
+void WidgetLayer::_renderInternalNoToolbar() {
+  // Call set functions
+  for (auto& item : _layout.getItems()) {
+    std::visit([](auto& w){
+      if (w.set_function)w.set_function();
+    }, item.data);
+  }
+
+  ImGui::BeginChild("Content");
+  _layout.render();
+  ImGui::EndChild();
 }
 
 
 // ------------------- Constructor -------------------
 
-WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_open, ImGuiWindowFlags window_flags)
+WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_open, ImGuiWindowFlags window_flags, const bool toolbar)
 : _toolbar_side(ToolbarSide::Top)
-, _visible(true)
+, _layout(layer_name)
 , _layer_name(layer_name)
 , _layer_transparency(transparency)
 , _p_open(p_open)
 , _window_flags(window_flags)
-, _layout(layer_name)
 , _min_size(0.0f, 0.0f)
 , _max_size(Config::monitor_size.x, Config::monitor_size.y)
 , _curr_size(400.0f, 400.0f)
 , _actual_size(400.0f, 300.0f) {
-  _layout = WidgetContainer(layer_name);
+  if (toolbar) {
+    _toolbar = std::make_shared<WidgetContainer>("Toolbar");
+    _toolbar->setLayout(LayoutType::Grid);  // The only layout for a toolbar
+    _toolbar->setGridSize(1, 10);
+    _render_pipeline = [this]() { _renderInternalWithToolbar(); };
+    std::cout << "here2\n";
+  }
+  else {
+    _toolbar = nullptr;
+    _render_pipeline = [this]() { _renderInternalNoToolbar(); };
+    std::cout << "here1\n";
+  }
+
   _layout.setLayout(LayoutType::Grid);  // Default layout
   _layout.setGridSize(2, 2);
 }
@@ -58,41 +151,92 @@ WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_ope
 
 // ------------------- Public functions -------------------
 
-void WidgetLayer::addText(const std::string& name, const std::string& label) {
-  _layout.addItem(ImGuiWidget{
-    WIDGET_UNIQUE_ID++,
-    TextData{ name, label }
-  });
+ImGuiWidget& WidgetLayer::addWidget(const WidgetVariant& widget, const int position, const bool toolbar) {
+  if (toolbar) {
+    if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
+    return _toolbar->addItem(ImGuiWidget{
+      TOOLBAR_WIDGET_UNIQUE_ID++,
+      widget
+    }, position);
+  }
+  else {
+    return _layout.addItem(ImGuiWidget{
+      WIDGET_UNIQUE_ID++,
+      widget
+    }, position);
+  }
 }
 
 
-void WidgetLayer::addButton(const std::string& name, const std::string& label, const bool initial_state, std::function<void(bool)> callback) {
-  _layout.addItem(ImGuiWidget{
-    WIDGET_UNIQUE_ID++,
-    ButtonData{ name, label, initial_state, callback }
-  });
+ImGuiWidget& WidgetLayer::addText(const std::string& name, const std::string& label, const int position, const bool toolbar) {
+  if (toolbar) {
+    if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
+     return _toolbar->addItem(ImGuiWidget{
+      TOOLBAR_WIDGET_UNIQUE_ID++,
+      TextData{ name, label }
+    }, position);
+  }
+  else {
+    return _layout.addItem(ImGuiWidget{
+      WIDGET_UNIQUE_ID++,
+      TextData{ name, label }
+    }, position);
+  }
 }
 
 
-void WidgetLayer::addSlider(const std::string& name, const std::string& label, float min, float max, float value, std::function<void(float)> callback) {
-  _layout.addItem(ImGuiWidget{
-    WIDGET_UNIQUE_ID++,
-    SliderData{ name, label, value, min, max, callback }
-  });
+ImGuiWidget& WidgetLayer::addButton(const std::string& name, const std::string& label, const bool initial_state, const std::function<void(bool)> callback, const int position, const bool toolbar) {
+  if (toolbar) {
+    if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
+    return _toolbar->addItem(ImGuiWidget{
+      TOOLBAR_WIDGET_UNIQUE_ID++,
+      ButtonData{ name, label, initial_state, callback }
+    }, position);
+  }
+  else {
+    return _layout.addItem(ImGuiWidget{
+      WIDGET_UNIQUE_ID++,
+      ButtonData{ name, label, initial_state, callback }
+    }, position);
+  }
 }
 
 
-void WidgetLayer::addCheckbox(const std::string& name, const std::string& label, bool checked, std::function<void(bool)> callback) {
-  _layout.addItem(ImGuiWidget{
-    WIDGET_UNIQUE_ID++,
-    CheckboxData{ name, label, checked, callback }
-  });
+ImGuiWidget& WidgetLayer::addSlider(const std::string& name, const std::string& label, const float min, const float max, const float value, const std::function<void(float)> callback, const int position, const bool toolbar) {
+  if (toolbar) {
+    if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
+    return _toolbar->addItem(ImGuiWidget{
+      TOOLBAR_WIDGET_UNIQUE_ID++,
+      SliderData{ name, label, value, min, max, callback }
+    }, position);
+  }
+  else {
+    return _layout.addItem(ImGuiWidget{
+      WIDGET_UNIQUE_ID++,
+      SliderData{ name, label, value, min, max, callback }
+    }, position);
+  }
+}
+
+
+ImGuiWidget& WidgetLayer::addCheckbox(const std::string& name, const std::string& label, const bool checked, const std::function<void(bool)> callback, const int position, const bool toolbar) {
+  if (toolbar) {
+    if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
+    return _toolbar->addItem(ImGuiWidget{
+      TOOLBAR_WIDGET_UNIQUE_ID++,
+      CheckboxData{ name, label, checked, callback }
+    }, position);
+  }
+  else {
+    return _layout.addItem(ImGuiWidget{
+      WIDGET_UNIQUE_ID++,
+      CheckboxData{ name, label, checked, callback }
+    }, position);
+  }
 }
 
 
 void WidgetLayer::render() {
-  if (!_visible) return;
-
   if (_layer_transparency < 1.0f) {
     ImGui::SetNextWindowBgAlpha(_layer_transparency);
   }
@@ -101,59 +245,10 @@ void WidgetLayer::render() {
   //ImGui::SetNextWindowSize(_actual_size, ImGuiCond_Once);
   ImGui::SetNextWindowSize(_actual_size, ImGuiCond_FirstUseEver);
   ImGui::SetNextWindowSizeConstraints(_min_size, _max_size);
-  
 
   // Render
   if (ImGui::Begin(_layer_name, _p_open, _window_flags)) {
-    const float thickness = 30.0f;
-    ImVec2 avail = ImGui::GetContentRegionAvail();
-
-    // --- TOP ---
-    if (_toolbar_side == ToolbarSide::Top) {
-      ImGui::BeginChild("Toolbar", ImVec2(avail.x, thickness), false);
-      _renderToolbar();
-      ImGui::EndChild();
-    }
-
-    // --- LEFT ---
-    if (_toolbar_side == ToolbarSide::Left) {
-      ImGui::BeginChild("Toolbar", ImVec2(thickness, avail.y), false);
-      _renderToolbar();
-      ImGui::EndChild();
-
-      ImGui::SameLine();
-    }
-
-    // --- CONTENT ---
-    ImVec2 content_size = avail;
-
-    if (_toolbar_side == ToolbarSide::Top ||
-        _toolbar_side == ToolbarSide::Bottom) {
-      content_size.y -= thickness;
-    }
-    else if (_toolbar_side == ToolbarSide::Left ||
-             _toolbar_side == ToolbarSide::Right) {
-      content_size.x -= thickness;
-    }
-
-    ImGui::BeginChild("Content", content_size, false);
-    _layout.render();
-    ImGui::EndChild();
-
-    // --- RIGHT ---
-    if (_toolbar_side == ToolbarSide::Right) {
-      ImGui::SameLine();
-      ImGui::BeginChild("Toolbar", ImVec2(thickness, avail.y), false);
-      _renderToolbar();
-      ImGui::EndChild();
-    }
-
-    // --- BOTTOM ---
-    if (_toolbar_side == ToolbarSide::Bottom) {
-      ImGui::BeginChild("Toolbar", ImVec2(avail.x, thickness), false);
-      _renderToolbar();
-      ImGui::EndChild();
-    }
+    _render_pipeline();
   }
   ImGui::End();
 }

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <variant>
 #include <cstdint>
+#include <functional>
 
 #include "imgui.h"
 
@@ -32,6 +33,16 @@ struct ImGuiWidget {
    * @brief Render an ImGui Widget
    */
   void render();
+
+  /**
+   * @brief Applies a new set function to the stored data.
+   * @param sf: New set function
+   */
+  void setSetFunction(const std::function<void()> sf) {
+    std::visit([&sf](auto& w){
+      w.set_function = sf;
+    }, data);
+  }
 };
 
 /**
@@ -74,52 +85,52 @@ class WidgetContainer {
     /**
      * @brief Sort a layout
      */
-    void applySorting();
+    void _applySorting();
 
 
     /**
      * @brief Render a grid-style layout
      */
-    void renderGrid();
+    void _renderGrid();
 
 
     /**
      * @brief Render a Vertical layout
      */
-    void renderVertical();
+    void _renderVertical();
 
 
     /**
      * @brief Render a horizontal layout
      */
-    void renderHorizontal();
+    void _renderHorizontal();
 
 
     /**
      * @brief Render a stack of vertical rects
      */
-    void renderRectStackVertical();
+    void _renderRectStackVertical();
 
 
     /**
      * @brief Render a single cell
      * @param index: Index to render
      */
-    void renderCell(int index);
+    void _renderCell(int index);
 
 
     /**
      * @brief Render a dragging object
      * @param item: Item to drag
      */
-    void renderDragSource(ImGuiWidget& item);
+    void _renderDragSource(ImGuiWidget& item);
 
 
     /**
      * @brief Render a dragging object to its new location
      * @param index: Index of the item
      */
-    void renderDropTarget(int index);
+    void _renderDropTarget(int index);
 
 
     // --- static registry of all containers ---
@@ -134,10 +145,15 @@ class WidgetContainer {
      * @param target: Target container to move item to
      * @param tatget_index: index of the position to move the item to in the target container
      */
-    static void moveItemBetweenLayouts(int item_id, WidgetContainer& target, int targetIndex);
+    static void _moveItemBetweenLayouts(int item_id, WidgetContainer& target, int targetIndex);
 
 
   public:
+    /**
+     * @brief Default Constructor.
+     */
+    WidgetContainer() = default;
+
     /**
      * CONSTRUCTOR
      * @brief Create a new layer
@@ -196,18 +212,26 @@ class WidgetContainer {
      * @param item: Item to add
      * @param position: Position to add the item at | DEFAULT = END
      */
-    void addItem(ImGuiWidget item, const int position = -1) {
+    ImGuiWidget& addItem(ImGuiWidget item, const int position = -1) {
       if (position > -1 && position < _items.size()) {
         _items.insert(_items.begin() + position, std::move(item));
+        return _items[position];
       }
       else {
         _items.push_back(std::move(item));
+        return _items.back();
       }
       
       _needs_sorting = true;
     }
 
-    std::vector<ImGuiWidget>& getItems() { return _items; }
+    /**
+     * @brief Returns a modifiable list of items
+     * @returns std::vector<ImGuiWidget>&: Widget items
+     */
+    std::vector<ImGuiWidget>& getItems() {
+      return _items;
+    }
 };
 
 

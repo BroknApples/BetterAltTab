@@ -18,6 +18,7 @@
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx11.h"
 
+#include "timers.hpp"
 #include "config.hpp"
 #include "resources.h"
 #include "widget_layer.hpp"
@@ -44,10 +45,10 @@ class Application {
 
 
     // ---------------- DirectX variables ----------------
-    static ID3D11Device*           _g_pd3dDevice;
-    static ID3D11DeviceContext*    _g_pd3dDeviceContext;
-    static IDXGISwapChain*         _g_pSwapChain;
-    static ID3D11RenderTargetView* _g_mainRenderTargetView;
+    static ID3D11Device*           _pd3d_device;
+    static ID3D11DeviceContext*    _pd3d_device_context;
+    static IDXGISwapChain*         _p_swap_chain;
+    static ID3D11RenderTargetView* _main_render_target_view;
 
 
     // ---------------- Tray variables ----------------
@@ -68,7 +69,8 @@ class Application {
     // ---------------- Misc variables ----------------
     static bool _overlay_visible;
     static bool _settings_visible;
-    static std::vector<WindowInfo> _visible_windows;
+    static std::vector<WindowInfo> _open_windows;
+    static FpsTimer _fps_timer;
 
 
     // ---------------- Functions  ----------------
@@ -128,15 +130,6 @@ class Application {
      * @brief Toggles the visibility of the overlay
      */
     static void _toggleOverlayVisible();
-
-
-    /**
-     * @brief Sets the visibility of the settings panel
-     */
-    static void _setSettingsVisibility(const bool value) {
-      _settings_visible = value;
-    }
-
 
 
     /**

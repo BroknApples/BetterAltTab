@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <algorithm>
+#include <d3d11.h>
 #include <windows.h>
 #include <dwmapi.h>
 #pragma comment(lib, "dwmapi.lib")
@@ -116,11 +117,30 @@ void focusWindow(HWND hwnd);
 
 
 /**
- * @brief Get an RGBA vector of an HBITMAP
+ * @brief Get a BGRA vector of an HBITMAP
  * @param bmp: Bitmap
- * @param output: Output buffer
+ * @param pixels: Output buffer
  */
-void bitmapToRGBA(HBITMAP bmp, std::vector<uint8_t>& output);
+void bitmapToBGRA(HBITMAP bmp, std::vector<uint8_t>& pixels);
+
+
+/**
+ * @brief Get a BGRA vector of an HBITMAP
+ * @param bmp: Bitmap
+ * @param pixels: Output buffer
+ * @param width: Filled in with the width of the vector
+ * @param height: Filled in with the height of the vector
+ */
+void bitmapToBGRA(HBITMAP bmp, std::vector<uint8_t>& pixels, int& width, int& height);
+
+
+/**
+ * @brief Converts an HBITMAP to a texture usable by ImGui
+ * @param h_bmp: Bitmap to convert
+ * @param pd3d_device: GPU device to render the texture on
+ * @returns ID3D11ShaderResourceView*: DirectX11 shader resource.
+ */
+ID3D11ShaderResourceView* bitmapToShaderResourceView(HBITMAP h_bmp, ID3D11Device* pd3d_device);
 
 
 /**
@@ -211,5 +231,17 @@ class DwmThumbnail {
     }
 };
 
+
+// ------------------ Premade capturing functions ------------------
+
+/**
+ * @brief Captures the image of a window and creates a gpu texture of (width * height) size
+ * @param hwnd: Window handle
+ * @param pd3d_device: GPU device to render with
+ * @param width: Width of the texture
+ * @param height: Height of the texture
+ * @param tex: Texture to write into
+ */
+void buildWindowTextureFromHwnd(HWND hwnd, ID3D11Device* pd3d_device, const int width, const int height, ID3D11ShaderResourceView*& tex);
 
 #endif // WINDOWS_HELPERS_HPP

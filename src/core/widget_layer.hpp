@@ -10,7 +10,9 @@
 #include <vector>
 #include <string>
 #include <variant>
+#include <functional>
 #include <algorithm>
+#include <memory>
 #include <cstdint>
 
 #include "imgui.h"
@@ -37,13 +39,17 @@ enum ToolbarSide {
  */
 class WidgetLayer {
   private:
-    ToolbarSide _toolbar_side; // Defaults to the top
-    WidgetContainer _layout;
-    bool _visible;
+    // -------------- ImGui window vars --------------
     const char* _layer_name;
     float _layer_transparency;
     bool* _p_open;
     ImGuiWindowFlags _window_flags;
+
+    // -------------- Widgets --------------
+    ToolbarSide _toolbar_side; // Defaults to the top
+    std::shared_ptr<WidgetContainer> _toolbar;
+    WidgetContainer _layout;
+    std::function<void()> _render_pipeline; // Function used within the { ImGui::Begin() -> ImGui::End() } block.
 
     // -------------- Sizing --------------
     ImVec2 _min_size;
@@ -64,6 +70,18 @@ class WidgetLayer {
      */
     void _renderToolbar();
 
+
+    /**
+     * @brief Function for rendering which INCLUDES a toolbar rendering pipeline
+     */
+    void _renderInternalWithToolbar();
+
+    /**
+     * @brief Function for rendering which DOES NOT INCLUDE a toolbar rendering pipeline
+     */
+    void _renderInternalNoToolbar();
+
+
   public:
     /**
      * @brief Actual constructor
@@ -71,16 +89,28 @@ class WidgetLayer {
      * @param layer_transparency: Transparency of the layer
      * @param p_open: X box to close the window
      * @param window_flags: ImGui window flags
+     * @param toolbar: Should there be a toolbar on this WidgetLayer?
      */
-     WidgetLayer(const char* layer_name, float transparency = 1.0f, bool* p_open = nullptr, ImGuiWindowFlags window_flags = 0);
+    WidgetLayer(const char* layer_name, float transparency = 1.0f, bool* p_open = nullptr, ImGuiWindowFlags window_flags = 0, const bool toolbar = false);
+
+
+    /**
+     * @brief Adds a widget to the layout
+     * @param widget: Widget to add
+     * @param position: Position in the layout to add the widget
+     * @param toolbar: Should it be added to the toolbar instead of the layer?
+     */
+    ImGuiWidget& addWidget(const WidgetVariant& widget, const int position = -1, const bool toolbar = false);
 
 
     /**
      * @brief Adds a Slider widget
      * @param name: Name of the ImGui element
      * @param label: Label of the text
+     * @param position: Position in the layout to add the widget
+     * @param toolbar: Should it be added to the toolbar instead of the layer?
      */
-    void addText(const std::string& name, const std::string& label);
+    ImGuiWidget& addText(const std::string& name, const std::string& label, const int position = -1, const bool toolbar = false);
 
 
     /**
@@ -89,8 +119,10 @@ class WidgetLayer {
      * @param label: Label of the button
      * @param initial_state: Intial state of the button
      * @param callback: Function called on each frame.
+     * @param position: Position in the layout to add the widget
+     * @param toolbar: Should it be added to the toolbar instead of the layer?
      */
-    void addButton(const std::string& name, const std::string& label, const bool initial_state, std::function<void(bool)> callback = nullptr);
+    ImGuiWidget& addButton(const std::string& name, const std::string& label, const bool initial_state, const std::function<void(bool)> callback = nullptr, const int position = -1, const bool toolbar = false);
 
 
     /**
@@ -101,8 +133,10 @@ class WidgetLayer {
      * @param max: Maximium percentage of the slider
      * @param value: Starting value of the slider
      * @param callback: Function called on each frame.
+     * @param position: Position in the layout to add the widget
+     * @param toolbar: Should it be added to the toolbar instead of the layer?
      */
-    void addSlider(const std::string& name, const std::string& label, float min, float max, float value, std::function<void(float)> callback = nullptr);
+    ImGuiWidget& addSlider(const std::string& name, const std::string& label, const float min, const float max, const float value, const std::function<void(float)> callback = nullptr, const int position = -1, const bool toolbar = false);
 
 
     /**
@@ -111,8 +145,10 @@ class WidgetLayer {
      * @param label: Label of the checkbox
      * @param checked: Initial check state
      * @param callback: Function called on each frame.
+     * @param position: Position in the layout to add the widget
+     * @param toolbar: Should it be added to the toolbar instead of the layer?
      */
-    void addCheckbox(const std::string& name, const std::string& label, bool checked, std::function<void(bool)> callback = nullptr);
+    ImGuiWidget& addCheckbox(const std::string& name, const std::string& label, const bool checked, const std::function<void(bool)> callback = nullptr, const int position = -1, const bool toolbar = false);
 
 
     /**
@@ -121,12 +157,36 @@ class WidgetLayer {
     void render();
 
 
+    // --------------- Inline functions ---------------
+
     /**
-     * @brief Toggles visiblity of the layer
-     * @param visible: Should the layer be visible or invisible?
+     * @brief Gets the list of widgets in this layer
+     * @returns std::vector<ImGuiWidget>&: List of wiget
      */
-    void toggleVisibility(bool visible) {
-      _visible = visible;
+    std::vector<ImGuiWidget>& getWidgets() {
+      return _layout.getItems();
+    }
+
+
+    /**
+     * @brief Gets the list of widgets in this layer
+     * @returns std::vector<ImGuiWidget>&: List of wiget
+     */
+    std::vector<ImGuiWidget>& getToolbarWidgets() {
+      return _toolbar->getItems();
+    }
+
+    /**
+     * @brief Changes the visibiltiy of the toolbar when rendering
+     * @param value: New value
+     */
+    void setToolbarVisibility(const bool visible) {
+      if (visible) {
+        if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
+        _render_pipeline = [this]() { _renderInternalWithToolbar(); };
+      } else {
+        _render_pipeline = [this]() { _renderInternalNoToolbar(); };
+      }
     }
 
 
@@ -229,6 +289,18 @@ class WidgetLayer {
      */
     void setToolbarSide(ToolbarSide side) {
       _toolbar_side = side;
+
+      if (_toolbar == nullptr) return;
+      switch (side) {
+        case ToolbarSide::Top:
+        case ToolbarSide::Bottom:
+          _toolbar->setGridSize(10, 1);
+          break;
+        case ToolbarSide::Left:
+        case ToolbarSide::Right:
+          _toolbar->setGridSize(1, 10);
+          break;
+      }
     }
 };
 

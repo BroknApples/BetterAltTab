@@ -42,9 +42,11 @@ struct WidgetData {
    * @brief Constructs a new data object.
    */
   WidgetData(const std::string& name)
-  : name(name) {}
+  : name(name)
+  , set_function(nullptr) {}
 
   std::string name;
+  std::function<void()> set_function;
 };
 
 
