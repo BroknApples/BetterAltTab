@@ -6,6 +6,7 @@ std::vector<WidgetContainer*> WidgetContainer::_registry;
 
 
 // --------------------- Widget rendering ---------------------
+
 void ImGuiWidget::render() {
   std::visit([](auto& widget){
     using T = std::decay_t<decltype(widget)>;
@@ -106,6 +107,7 @@ void WidgetContainer::renderGrid() {
 
 
 // --------------------- Vertical list ---------------------
+
 void WidgetContainer::renderVertical() {
   for (int i = 0; i <= static_cast<int>(_items.size()); ++i) {
     // we render drop target before each item (and after last)
@@ -129,6 +131,7 @@ void WidgetContainer::renderVertical() {
 }
 
 // --------------------- Horizontal list ---------------------
+
 void WidgetContainer::renderHorizontal() {
   for (int i = 0; i <= static_cast<int>(_items.size()); ++i) {
     renderDropTarget(i);
@@ -154,6 +157,7 @@ void WidgetContainer::renderHorizontal() {
 
 
 // --------------------- Vertical card list ---------------------
+
 void WidgetContainer::renderRectStackVertical() {
   const ImVec2 CARD_SIZE = ImVec2(-1, 100); // wide → fixed height
 

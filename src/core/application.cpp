@@ -1,6 +1,7 @@
 #include "application.hpp"
 
 // ---------------- DirectX variables ----------------
+
 ID3D11Device*           Application::_g_pd3dDevice = nullptr;
 ID3D11DeviceContext*    Application::_g_pd3dDeviceContext = nullptr;
 IDXGISwapChain*         Application::_g_pSwapChain = nullptr;
@@ -8,6 +9,7 @@ ID3D11RenderTargetView* Application::_g_mainRenderTargetView = nullptr;
 
 
 // ---------------- Tray variables ----------------
+
 WNDCLASSEX     Application::_wc = {};
 NOTIFYICONDATA Application::_nid = {};
 HWND           Application::_hwnd = nullptr;
@@ -17,6 +19,7 @@ HWINEVENTHOOK  Application::_hook = nullptr;
 
 
 // ---------------- Gui layers ----------------
+
 std::unique_ptr<WidgetLayer>              Application::_overlay_layer = nullptr;
 std::unique_ptr<WidgetLayer>              Application::_settings_layer = nullptr;
 std::unique_ptr<std::vector<WidgetLayer>> Application::_tab_group_layers = nullptr;
@@ -24,12 +27,14 @@ std::unique_ptr<WidgetLayer>              Application::_hotkey_layer = nullptr;
 
 
 // ---------------- Misc variables ----------------
+
 bool                    Application::_overlay_visible = false;
 bool                    Application::_settings_visible = false;
 std::vector<WindowInfo> Application::_visible_windows = {};
 
 
 // ---------------- DirectX functions ----------------
+
 void Application::_createRenderTarget() {
   ID3D11Texture2D* p_back_buffer = nullptr;
   _g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&p_back_buffer));
@@ -92,19 +97,25 @@ void Application::_cleanupDeviceD3D() {
 
 
 // ----------------- Gui functions -----------------
+
 void Application::_setupWidgetLayers() {
   // ---------------- Overlay window ----------------
   constexpr ImGuiWindowFlags OVERLAY_FLAGS = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
   _overlay_layer = std::make_unique<WidgetLayer>(_WINDOW_NAME, 0.1f, nullptr, OVERLAY_FLAGS);
   _overlay_layer->setLayout(LayoutType::VerticalList);
+  _overlay_layer->setMinCellSize(200.0f, 150.0f);
   _overlay_layer->setCellSize(600.0f, 500.0f);
+  _overlay_layer->setMaxCellSize(800.0f, 600.0f);
   _overlay_layer->setGridSize(5, 1);
   _overlay_layer->addText("HelpText1", "BetterAltTab Overlay Active");
   _overlay_layer->addText("HelpText2", "Use the tray icon to open Settings or Exit");
   
   // ---------------- Settings window ----------------
   _settings_layer = std::make_unique<WidgetLayer>("Settings", 1.0f, &_settings_visible);
+  _settings_layer->setMinCellSize(200.0f, 150.0f);
   _settings_layer->setCellSize(600.0f, 500.0f);
+  _settings_layer->setMaxCellSize(800.0f, 600.0f);
+  _settings_layer->setToolbarSide(ToolbarSide::Top);
   _settings_layer->setGridSize(2, 2);
   _settings_layer->addText("DescriptionText1", "This is the settings page");
   _settings_layer->addButton("ResizeableButton", "ToggleResize", false, [](bool val) {
@@ -119,6 +130,7 @@ void Application::_setupWidgetLayers() {
 
 
 // ----------------- Tray functions -----------------
+
 void Application::_addTrayIcon() {
   _nid.cbSize = sizeof(NOTIFYICONDATA);
   _nid.hWnd = _hwnd;
@@ -214,53 +226,50 @@ LRESULT CALLBACK Application::_WndProc(HWND hwnd, UINT msg, WPARAM w_param, LPAR
 void CALLBACK Application::_WinEventProc(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG id_object,
   LONG id_child, DWORD event_thread, DWORD event_time) {
   // MUST be a window event
-  if (id_object != OBJID_WINDOW) return;
+  if (id_object != OBJID_WINDOW) return; // Only window events are needed
+  if (hwnd == _hwnd) return; // Ignore events for the "BetterAltTab.exe" program.
 
-  // char title[256] = {};
-  // GetWindowTextA(hwnd, title, sizeof(title));
+  // std::string title = getWindowTitle(hwnd);
+  
+  // auto p = [](const std::string type) {
+  //   std::cout << "\n[" << type << "] Printing updated list: \n";
+  //   for (const auto& info : _visible_windows) {
+  //     std::cout << info.title << "\n";
+  //   }
+  //   std::cout << std::endl;
+  // };
 
   switch (event) {
+    case EVENT_OBJECT_NAMECHANGE:
+      // Change title
+      updateWindowInfoListItem(_visible_windows, hwnd);
+      //p("NAMECHANGE");
+      break;
+
     case EVENT_OBJECT_CREATE:
       // Add to list
       addWindowToVisibleAltTabList(_visible_windows, hwnd);
-      //printf("[CREATE] %p \"%s\"\n", hwnd, title);
+      //p("CREATE");
       break;
 
     case EVENT_OBJECT_DESTROY:
       // Remove from list
       removeWindowFromWindowInfoList(_visible_windows, hwnd);
-      //printf("[DESTROY] %p\n", hwnd);
+      //p("DESTROY");
       break;
 
-    case EVENT_OBJECT_SHOW:
-      // Add to list
-      addWindowToVisibleAltTabList(_visible_windows, hwnd);
-      //printf("[SHOW] %p \"%s\"\n", hwnd, title);
-      break;
+    // case EVENT_OBJECT_SHOW:
+    //   // Add to list
+    //   addWindowToVisibleAltTabList(_visible_windows, hwnd);
+    //   p("SHOW");
+    //   break;
 
-    case EVENT_OBJECT_HIDE:
-      // Remove from list
-      removeWindowFromWindowInfoList(_visible_windows, hwnd);
-      //printf("[HIDE] %p \"%s\"\n", hwnd, title);
-      break;
-
-    case EVENT_SYSTEM_FOREGROUND:
-      // Update current selection -> NOT NEEDED HERE
-      //printf("[FOREGROUND] %p \"%s\"\n", hwnd, title);
-      break;
-
-    case EVENT_OBJECT_NAMECHANGE:
-      // Change title
-      updateWindowInfoListItem(_visible_windows, hwnd);
-      //printf("[NAMECHANGE] %p \"%s\"\n", hwnd, title);
-      break;
-    }
-  
-  std::cout << "\nPrinting updated list: \n";
-  for (const auto& info : _visible_windows) {
-    std::cout << info.title << "\n";
+    // case EVENT_OBJECT_HIDE:
+    //   // Remove from list
+    //   removeWindowFromWindowInfoList(_visible_windows, hwnd);
+    //   p("HIDE");
+    //   break;
   }
-  std::cout << std::endl;
 }
 
 

@@ -2,6 +2,11 @@
 #define LAYOUT_CONTAINER_HPP
 
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif // NOMINMAX
+
+
 #include <vector>
 #include <string>
 #include <algorithm>

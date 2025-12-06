@@ -2,6 +2,11 @@
 #define APPLICATION_HPP
 
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif // NOMINMAX
+
+
 #include <windows.h>
 #include <shellapi.h>
 #include <d3d11.h>

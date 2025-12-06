@@ -1,6 +1,12 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif // NOMINMAX
+
+
 #include "imgui.h"
 #include "windows.h"
 

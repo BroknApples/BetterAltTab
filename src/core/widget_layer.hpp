@@ -2,6 +2,11 @@
 #define GUI_HPP
 
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif // NOMINMAX
+
+
 #include <vector>
 #include <string>
 #include <variant>
@@ -14,8 +19,25 @@
 #include "widget_types.hpp"
 #include "widget_container.hpp"
 
+
+/**
+ * @brief Enum for the side a toolbar should be located at.
+ */
+enum ToolbarSide {
+  Top,
+  Bottom,
+  Left,
+  Right,
+  None
+};
+
+
+/**
+ * @brief Class which defines a window of widgets grouped together
+ */
 class WidgetLayer {
   private:
+    ToolbarSide _toolbar_side; // Defaults to the top
     WidgetContainer _layout;
     bool _visible;
     const char* _layer_name;
@@ -24,9 +46,9 @@ class WidgetLayer {
     ImGuiWindowFlags _window_flags;
 
     // -------------- Sizing --------------
-    float _min_width, _max_width;
-    float _min_height, _max_height;
-    float _curr_width, _curr_height;
+    ImVec2 _min_size;
+    ImVec2 _max_size;
+    ImVec2 _curr_size;
     ImVec2 _actual_size; // Only to be used internally
     bool _autofit; // TODO: Implement this next
 
@@ -35,6 +57,12 @@ class WidgetLayer {
      * @brief Updates the actual size of the widget
      */
     void _updateActualSize();
+
+
+    /**
+     * @brief Renders the actual toolbar
+     */
+    void _renderToolbar();
 
   public:
     /**
@@ -136,8 +164,8 @@ class WidgetLayer {
      * @param h: Height
      */
     void setCellSize(const float w, const float h) {
-      _curr_width = std::clamp(w, 0.0f, Config::monitor_size.x);
-      _curr_height = std::clamp(h, 0.0f, Config::monitor_size.y);
+      _curr_size.x = std::clamp(w, 0.0f, Config::monitor_size.x);
+      _curr_size.y = std::clamp(h, 0.0f, Config::monitor_size.y);
       _updateActualSize();
     }
 
@@ -147,8 +175,8 @@ class WidgetLayer {
      * @param h: Height
      */
     void setMinCellSize(const float w, const float h) {
-      _min_width = std::clamp(w, 0.0f, Config::monitor_size.x);
-      _min_height = std::clamp(h, 0.0f, Config::monitor_size.y);
+      _min_size.x = std::clamp(w, 0.0f, Config::monitor_size.x);
+      _min_size.y  = std::clamp(h, 0.0f, Config::monitor_size.y);
     }
 
     /**
@@ -157,8 +185,8 @@ class WidgetLayer {
      * @param h: Height
      */
     void setMaxCellSize(const float w, const float h) {
-      _max_width = std::clamp(w, 0.0f, Config::monitor_size.x);
-      _max_height = std::clamp(h, 0.0f, Config::monitor_size.y);
+      _max_size.x = std::clamp(w, 0.0f, Config::monitor_size.x);
+      _max_size.y  = std::clamp(h, 0.0f, Config::monitor_size.y);
     }
 
 
@@ -186,8 +214,21 @@ class WidgetLayer {
     }
 
 
+    /**
+     * @brief Is the current window resizable?
+     * @returns bool: True/False value
+     */
     const bool isResizable() const {
       return (_window_flags & ImGuiWindowFlags_NoResize) == 0;
+    }
+
+
+    /**
+     * @brief Sets a new side for the toolbar
+     * @param side: New side for the toolbar
+     */
+    void setToolbarSide(ToolbarSide side) {
+      _toolbar_side = side;
     }
 };
 

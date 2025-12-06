@@ -2,6 +2,11 @@
 #define WIDGET_TYPES_HPP
 
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif // NOMINMAX
+
+
 #include <vector>
 #include <string>
 #include <variant>
