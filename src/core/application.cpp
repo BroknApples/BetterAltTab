@@ -111,8 +111,8 @@ void Application::_setupWidgetLayers() {
   _overlay_layer->addText("HelpText1", "BetterAltTab Overlay Active");
   _overlay_layer->addText("HelpText2", "Use the tray icon to open Settings or Exit");
   auto& ref = _overlay_layer->addText("FPS Label", std::to_string(_fps_timer.getFps()) + " fps");
-  ref.setSetFunction([&ref]() {
-     if (auto* t = std::get_if<TextData>(&ref.data)) {
+  ref.setUpdateFunction([&ref]() {
+    if (auto* t = std::get_if<TextData>(&ref.data)) {
       t->label = std::to_string(_fps_timer.getFps()) + " fps";
     }
   });

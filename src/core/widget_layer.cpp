@@ -40,15 +40,15 @@ void WidgetLayer::_renderToolbar() {
 
 
 void WidgetLayer::_renderInternalWithToolbar() {
-  // Call set functions
+  // Call update functions
   for (auto& item : _layout.getItems()) {
     std::visit([](auto& w){
-      if (w.set_function)w.set_function();
+      if (w.update)w.update();
     }, item.data);
   }
   for (auto& item : _toolbar->getItems()) {
     std::visit([](auto& w){
-      if (w.set_function) w.set_function();
+      if (w.update) w.update();
     }, item.data);
   }
 
@@ -105,10 +105,10 @@ void WidgetLayer::_renderInternalWithToolbar() {
 
 
 void WidgetLayer::_renderInternalNoToolbar() {
-  // Call set functions
+  // Call update functions
   for (auto& item : _layout.getItems()) {
     std::visit([](auto& w){
-      if (w.set_function)w.set_function();
+      if (w.update)w.update();
     }, item.data);
   }
 

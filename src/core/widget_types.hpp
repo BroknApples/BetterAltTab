@@ -43,10 +43,10 @@ struct WidgetData {
    */
   WidgetData(const std::string& name)
   : name(name)
-  , set_function(nullptr) {}
+  , update(nullptr) {}
 
   std::string name;
-  std::function<void()> set_function;
+  std::function<void()> update;
 };
 
 

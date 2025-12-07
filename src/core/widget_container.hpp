@@ -35,12 +35,12 @@ struct ImGuiWidget {
   void render();
 
   /**
-   * @brief Applies a new set function to the stored data.
-   * @param sf: New set function
+   * @brief Applies a new update function to the stored data.
+   * @param uf: New update function
    */
-  void setSetFunction(const std::function<void()> sf) {
+  void setUpdateFunction(const std::function<void()> uf) {
     std::visit([&sf](auto& w){
-      w.set_function = sf;
+      w.update = uf;
     }, data);
   }
 };
