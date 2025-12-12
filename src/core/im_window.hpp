@@ -1,10 +1,5 @@
-#ifndef GUI_HPP
-#define GUI_HPP
-
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif // NOMINMAX
+#ifndef IM_WINDOW_HPP
+#define IM_WINDOW_HPP
 
 
 #include <vector>
@@ -37,10 +32,10 @@ enum ToolbarSide {
 /**
  * @brief Class which defines a window of widgets grouped together
  */
-class WidgetLayer {
+class ImWindow {
   private:
     // -------------- ImGui window vars --------------
-    const char* _layer_name;
+    const char* _window_name;
     float _layer_transparency;
     bool* _p_open;
     ImGuiWindowFlags _window_flags;
@@ -89,9 +84,9 @@ class WidgetLayer {
      * @param layer_transparency: Transparency of the layer
      * @param p_open: X box to close the window
      * @param window_flags: ImGui window flags
-     * @param toolbar: Should there be a toolbar on this WidgetLayer?
+     * @param toolbar: Should there be a toolbar on this ImWindow?
      */
-    WidgetLayer(const char* layer_name, float transparency = 1.0f, bool* p_open = nullptr, ImGuiWindowFlags window_flags = 0, const bool toolbar = false);
+    ImWindow(const char* layer_name, float transparency = 1.0f, bool* p_open = nullptr, ImGuiWindowFlags window_flags = 0, const bool toolbar = false);
 
 
     /**
@@ -305,4 +300,4 @@ class WidgetLayer {
 };
 
 
-#endif // GUI_HPP
+#endif // IM_WINDOW_HPP

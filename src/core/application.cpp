@@ -20,10 +20,10 @@ HWINEVENTHOOK  Application::_hook = nullptr;
 
 // ---------------- Gui layers ----------------
 
-std::unique_ptr<WidgetLayer>              Application::_overlay_layer = nullptr;
-std::unique_ptr<WidgetLayer>              Application::_settings_layer = nullptr;
-std::unique_ptr<std::vector<WidgetLayer>> Application::_tab_group_layers = nullptr;
-std::unique_ptr<WidgetLayer>              Application::_hotkey_layer = nullptr;
+std::unique_ptr<ImWindow>              Application::_overlay_layer = nullptr;
+std::unique_ptr<ImWindow>              Application::_settings_layer = nullptr;
+std::unique_ptr<std::vector<ImWindow>> Application::_tab_group_layers = nullptr;
+std::unique_ptr<ImWindow>              Application::_hotkey_layer = nullptr;
 
 
 // ---------------- Misc variables ----------------
@@ -99,10 +99,10 @@ void Application::_cleanupDeviceD3D() {
 
 // ----------------- Gui functions -----------------
 
-void Application::_setupWidgetLayers() {
+void Application::_setupImWindows() {
   // ---------------- Overlay window ----------------
   constexpr ImGuiWindowFlags OVERLAY_FLAGS = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
-  _overlay_layer = std::make_unique<WidgetLayer>(_WINDOW_NAME, 0.1f, nullptr, OVERLAY_FLAGS, false);
+  _overlay_layer = std::make_unique<ImWindow>(_WINDOW_NAME, 0.1f, nullptr, OVERLAY_FLAGS, false);
   _overlay_layer->setLayout(LayoutType::VerticalList);
   _overlay_layer->setMinCellSize(200.0f, 150.0f);
   _overlay_layer->setCellSize(600.0f, 500.0f);
@@ -118,7 +118,7 @@ void Application::_setupWidgetLayers() {
   });
 
   // ---------------- Settings window ----------------
-  _settings_layer = std::make_unique<WidgetLayer>("Settings", 1.0f, &_settings_visible, 0, false);
+  _settings_layer = std::make_unique<ImWindow>("Settings", 1.0f, &_settings_visible, 0, false);
   _settings_layer->setMinCellSize(200.0f, 150.0f);
   _settings_layer->setCellSize(600.0f, 500.0f);
   _settings_layer->setMaxCellSize(800.0f, 600.0f);
@@ -135,8 +135,8 @@ void Application::_setupWidgetLayers() {
   _settings_layer->addText("3", "This is the settings page", -1, true);
   _settings_layer->addText("4", "This is the settings page", -1, true);
 
-  _tab_group_layers = std::make_unique<std::vector<WidgetLayer>>();
-  _hotkey_layer = std::make_unique<WidgetLayer>("Hotkeys");
+  _tab_group_layers = std::make_unique<std::vector<ImWindow>>();
+  _hotkey_layer = std::make_unique<ImWindow>("Hotkeys");
 }
 
 
@@ -366,7 +366,7 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   ImGui_ImplDX11_Init(_pd3d_device, _pd3d_device_context);
 
   // Setup widget layers
-  _setupWidgetLayers();
+  _setupImWindows();
   return true;
 }
 

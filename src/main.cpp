@@ -2,7 +2,7 @@
 #include <windows.h>
 #include "core/application.hpp"
 #include "core/config.hpp"
-#include "core/windows_helpers.hpp"
+#include "core/win_utils.hpp"
 
 
 // ---------------- WinMain ----------------

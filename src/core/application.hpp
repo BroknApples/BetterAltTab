@@ -21,9 +21,9 @@
 #include "timers.hpp"
 #include "config.hpp"
 #include "resources.h"
-#include "widget_layer.hpp"
+#include "im_window.hpp"
 #include "widget_container.hpp"
-#include "windows_helpers.hpp"
+#include "win_utils.hpp"
 
 
 // Setup ImGUI WndProc
@@ -60,10 +60,10 @@ class Application {
 
 
     // ---------------- Gui layers ----------------
-    static std::unique_ptr<WidgetLayer> _overlay_layer;
-    static std::unique_ptr<WidgetLayer> _settings_layer;
-    static std::unique_ptr<std::vector<WidgetLayer>> _tab_group_layers;
-    static std::unique_ptr<WidgetLayer> _hotkey_layer;
+    static std::unique_ptr<ImWindow> _overlay_layer;
+    static std::unique_ptr<ImWindow> _settings_layer;
+    static std::unique_ptr<std::vector<ImWindow>> _tab_group_layers;
+    static std::unique_ptr<ImWindow> _hotkey_layer;
 
 
     // ---------------- Misc variables ----------------
@@ -105,7 +105,7 @@ class Application {
     /**
      * @brief Sets up the widget layers
      */
-    static void _setupWidgetLayers();
+    static void _setupImWindows();
 
 
     /**

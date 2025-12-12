@@ -1,5 +1,5 @@
-#ifndef WINDOWS_HELPERS_HPP
-#define WINDOWS_HELPERS_HPP
+#ifndef WIN_UTILS_HPP
+#define WIN_UTILS_HPP
 
 
 #ifndef NOMINMAX
@@ -244,4 +244,4 @@ class DwmThumbnail {
  */
 void buildWindowTextureFromHwnd(HWND hwnd, ID3D11Device* pd3d_device, const int width, const int height, ID3D11ShaderResourceView*& tex);
 
-#endif // WINDOWS_HELPERS_HPP
+#endif // WIN_UTILS_HPP

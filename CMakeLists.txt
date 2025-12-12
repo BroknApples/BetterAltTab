@@ -17,9 +17,9 @@ set(SOURCES
   src/main.cpp
   src/core/config.cpp
   src/core/application.cpp
-  src/core/widget_layer.cpp
+  src/core/im_window.cpp
   src/core/widget_container.cpp
-  src/core/windows_helpers.cpp
+  src/core/win_utils.cpp
   src/core/resources.rc
 )
 

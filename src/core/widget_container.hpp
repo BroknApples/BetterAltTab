@@ -1,10 +1,5 @@
-#ifndef LAYOUT_CONTAINER_HPP
-#define LAYOUT_CONTAINER_HPP
-
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif // NOMINMAX
+#ifndef WIDGET_CONTAINER_HPP
+#define WIDGET_CONTAINER_HPP
 
 
 #include <vector>
@@ -39,7 +34,7 @@ struct ImGuiWidget {
    * @param uf: New update function
    */
   void setUpdateFunction(const std::function<void()> uf) {
-    std::visit([&sf](auto& w){
+    std::visit([&uf](auto& w){
       w.update = uf;
     }, data);
   }
@@ -235,4 +230,4 @@ class WidgetContainer {
 };
 
 
-#endif // LAYOUT_CONTAINER_HPP
+#endif // WIDGET_CONTAINER_HPP

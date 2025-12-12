@@ -1,4 +1,4 @@
-#include "widget_layer.hPP"
+#include "im_window.hPP"
 
 
 static uint64_t TOOLBAR_WIDGET_UNIQUE_ID = 1;
@@ -7,7 +7,7 @@ static uint64_t WIDGET_UNIQUE_ID = 1;
 
 // ------------------- Private functions -------------------
 
-void WidgetLayer::_updateActualSize() {
+void ImWindow::_updateActualSize() {
   if (_autofit) {
     // TODO: HERE
   }
@@ -19,7 +19,7 @@ void WidgetLayer::_updateActualSize() {
 }
 
 
-void WidgetLayer::_renderToolbar() {
+void ImWindow::_renderToolbar() {
   if (_toolbar_side == Top || _toolbar_side == Bottom) {
     // Horizontal toolbar
     _toolbar->render();
@@ -39,7 +39,7 @@ void WidgetLayer::_renderToolbar() {
 }
 
 
-void WidgetLayer::_renderInternalWithToolbar() {
+void ImWindow::_renderInternalWithToolbar() {
   // Call update functions
   for (auto& item : _layout.getItems()) {
     std::visit([](auto& w){
@@ -104,7 +104,7 @@ void WidgetLayer::_renderInternalWithToolbar() {
 }
 
 
-void WidgetLayer::_renderInternalNoToolbar() {
+void ImWindow::_renderInternalNoToolbar() {
   // Call update functions
   for (auto& item : _layout.getItems()) {
     std::visit([](auto& w){
@@ -120,10 +120,10 @@ void WidgetLayer::_renderInternalNoToolbar() {
 
 // ------------------- Constructor -------------------
 
-WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_open, ImGuiWindowFlags window_flags, const bool toolbar)
+ImWindow::ImWindow(const char* layer_name, float transparency, bool* p_open, ImGuiWindowFlags window_flags, const bool toolbar)
 : _toolbar_side(ToolbarSide::Top)
 , _layout(layer_name)
-, _layer_name(layer_name)
+, _window_name(layer_name)
 , _layer_transparency(transparency)
 , _p_open(p_open)
 , _window_flags(window_flags)
@@ -136,12 +136,10 @@ WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_ope
     _toolbar->setLayout(LayoutType::Grid);  // The only layout for a toolbar
     _toolbar->setGridSize(1, 10);
     _render_pipeline = [this]() { _renderInternalWithToolbar(); };
-    std::cout << "here2\n";
   }
   else {
     _toolbar = nullptr;
     _render_pipeline = [this]() { _renderInternalNoToolbar(); };
-    std::cout << "here1\n";
   }
 
   _layout.setLayout(LayoutType::Grid);  // Default layout
@@ -151,7 +149,7 @@ WidgetLayer::WidgetLayer(const char* layer_name, float transparency, bool* p_ope
 
 // ------------------- Public functions -------------------
 
-ImGuiWidget& WidgetLayer::addWidget(const WidgetVariant& widget, const int position, const bool toolbar) {
+ImGuiWidget& ImWindow::addWidget(const WidgetVariant& widget, const int position, const bool toolbar) {
   if (toolbar) {
     if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
     return _toolbar->addItem(ImGuiWidget{
@@ -168,7 +166,7 @@ ImGuiWidget& WidgetLayer::addWidget(const WidgetVariant& widget, const int posit
 }
 
 
-ImGuiWidget& WidgetLayer::addText(const std::string& name, const std::string& label, const int position, const bool toolbar) {
+ImGuiWidget& ImWindow::addText(const std::string& name, const std::string& label, const int position, const bool toolbar) {
   if (toolbar) {
     if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
      return _toolbar->addItem(ImGuiWidget{
@@ -185,7 +183,7 @@ ImGuiWidget& WidgetLayer::addText(const std::string& name, const std::string& la
 }
 
 
-ImGuiWidget& WidgetLayer::addButton(const std::string& name, const std::string& label, const bool initial_state, const std::function<void(bool)> callback, const int position, const bool toolbar) {
+ImGuiWidget& ImWindow::addButton(const std::string& name, const std::string& label, const bool initial_state, const std::function<void(bool)> callback, const int position, const bool toolbar) {
   if (toolbar) {
     if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
     return _toolbar->addItem(ImGuiWidget{
@@ -202,7 +200,7 @@ ImGuiWidget& WidgetLayer::addButton(const std::string& name, const std::string& 
 }
 
 
-ImGuiWidget& WidgetLayer::addSlider(const std::string& name, const std::string& label, const float min, const float max, const float value, const std::function<void(float)> callback, const int position, const bool toolbar) {
+ImGuiWidget& ImWindow::addSlider(const std::string& name, const std::string& label, const float min, const float max, const float value, const std::function<void(float)> callback, const int position, const bool toolbar) {
   if (toolbar) {
     if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
     return _toolbar->addItem(ImGuiWidget{
@@ -219,7 +217,7 @@ ImGuiWidget& WidgetLayer::addSlider(const std::string& name, const std::string& 
 }
 
 
-ImGuiWidget& WidgetLayer::addCheckbox(const std::string& name, const std::string& label, const bool checked, const std::function<void(bool)> callback, const int position, const bool toolbar) {
+ImGuiWidget& ImWindow::addCheckbox(const std::string& name, const std::string& label, const bool checked, const std::function<void(bool)> callback, const int position, const bool toolbar) {
   if (toolbar) {
     if (_toolbar == nullptr) _toolbar = std::make_shared<WidgetContainer>("Toolbar");
     return _toolbar->addItem(ImGuiWidget{
@@ -236,7 +234,7 @@ ImGuiWidget& WidgetLayer::addCheckbox(const std::string& name, const std::string
 }
 
 
-void WidgetLayer::render() {
+void ImWindow::render() {
   if (_layer_transparency < 1.0f) {
     ImGui::SetNextWindowBgAlpha(_layer_transparency);
   }
@@ -247,7 +245,7 @@ void WidgetLayer::render() {
   ImGui::SetNextWindowSizeConstraints(_min_size, _max_size);
 
   // Render
-  if (ImGui::Begin(_layer_name, _p_open, _window_flags)) {
+  if (ImGui::Begin(_window_name, _p_open, _window_flags)) {
     _render_pipeline();
   }
   ImGui::End();
