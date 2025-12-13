@@ -5,7 +5,9 @@
 
 bool Config::initialized = false;
 ImVec2 Config::monitor_size = ImVec2(1920, 1080); // TODO: Read from save file the saved monitor size for default value
-
+float Config::settings_panel_width_percent = 0.2f;  // 20% of the screen
+float Config::settings_panel_height_percent = 1.0f; // Full screen height
+int Config::vsync = 0;
 
 // ---------------- init ----------------
 

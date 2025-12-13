@@ -13,6 +13,8 @@
 #include <tchar.h>
 #include <string>
 #include <memory>
+#include <iostream>
+#include <iomanip>
 
 #include "imgui.h"
 #include "backends/imgui_impl_win32.h"
@@ -21,8 +23,6 @@
 #include "timers.hpp"
 #include "config.hpp"
 #include "resources.h"
-#include "im_window.hpp"
-#include "widget_container.hpp"
 #include "win_utils.hpp"
 
 
@@ -59,16 +59,12 @@ class Application {
     static HWINEVENTHOOK _hook;
 
 
-    // ---------------- Gui layers ----------------
-    static std::unique_ptr<ImWindow> _overlay_layer;
-    static std::unique_ptr<ImWindow> _settings_layer;
-    static std::unique_ptr<std::vector<ImWindow>> _tab_group_layers;
-    static std::unique_ptr<ImWindow> _hotkey_layer;
+    // ---------------- Settings Panel ----------------
+    static bool _settings_panel_visible;
 
 
     // ---------------- Misc variables ----------------
     static bool _overlay_visible;
-    static bool _settings_visible;
     static std::vector<WindowInfo> _open_windows;
     static FpsTimer _fps_timer;
 
@@ -103,9 +99,9 @@ class Application {
 
 
     /**
-     * @brief Sets up the widget layers
+     * @brief Sets up the ImGui style vars
      */
-    static void _setupImWindows();
+    static void _setupImGuiStyles();
 
 
     /**
@@ -131,6 +127,21 @@ class Application {
      */
     static void _toggleOverlayVisible();
 
+
+    /**
+     * @brief Checks inputs
+     */
+    static void _checkInputs();
+
+
+    /**
+     * @brief Wakes up the UI by sending a NULL message
+     * 
+     * NOTE: does nothing if its already visible, only useful when the UI is NOT visible
+     */
+    static void _jumpstartUI() {
+      PostMessage(_hwnd, WM_NULL, 0, 0);
+    }
 
     /**
      * @brief Event-handler for the window
@@ -182,6 +193,10 @@ class Application {
      * @brief Cleanup application
      */
     static void destroyApplication();
+  
+  
+  private:
+    static void _renderSettingsUI();
 };
 
 

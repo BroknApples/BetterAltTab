@@ -245,3 +245,27 @@ class DwmThumbnail {
 void buildWindowTextureFromHwnd(HWND hwnd, ID3D11Device* pd3d_device, const int width, const int height, ID3D11ShaderResourceView*& tex);
 
 #endif // WIN_UTILS_HPP
+
+
+// Example:
+
+// // build the texture
+// const int width = 496 * 3;
+// const int height = 279 * 3;
+// static ID3D11ShaderResourceView* preview_tex = nullptr;
+// ID3D11ShaderResourceView* tex = nullptr;
+// buildWindowTextureFromHwnd(_open_windows[0].hwnd, _pd3d_device, width, height, tex);
+
+// // free previous texture safely
+// if (preview_tex)
+//   preview_tex->Release();
+
+// preview_tex = tex;
+
+// // imgui render
+// ImGui::SetNextWindowSize(ImVec2{width, height}, ImGuiCond_Once);
+// ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
+// ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_NoDecoration);
+// ImGui::Image((ImTextureID)preview_tex, ImVec2{width, height});
+// ImGui::End();
+// ImGui::PopStyleVar();

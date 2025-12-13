@@ -1,8 +1,18 @@
+/*
+Simple timer classes.
+
+© 2025 BroknApples — modifications allowed; do not remove this notice.
+*/
+
+
 #ifndef TIMERS_HPP
 #define TIMERS_HPP
 
 
+#include <iostream>
 #include <chrono>
+#include <optional>
+
 
 /**
  * @brief Class used to track time between two points as fps
@@ -44,6 +54,71 @@ class FpsTimer {
 };
 
 
+/**
+ * @brief Simple stopwatch class
+ */
+class StopwatchTimer {
+  private:
+    std::optional<std::chrono::steady_clock::time_point> _start;
+  
+  public:
+    /**
+     * @brief Set params to default
+     */
+    StopwatchTimer() = default;
+
+
+    /**
+     * @brief Starts the stopwatch
+     * @returns bool: True/False of operation success.
+     */
+    bool start() {
+      // Do not allow the timer to be ended without being reset
+      if (_start.has_value()) {
+        std::cout << "Please reset the timer before starting again." << std::endl;
+        return false;
+      }
+
+      _start = std::chrono::steady_clock::now();
+      return true;
+    }
+
+
+    /**
+     * @brief Resets the stopwatch.
+     */
+    void reset() {
+      _start.reset();
+    }
+
+
+    /**
+     * @brief Elapsed time since the start of the watch.
+     * 
+     * Usage  ->   timer_name.elapsed(std::chrono::milliseconds{});
+     * 
+     * 
+     * @tparam Duration: A 'std::chrono::' duration value such as 'milliseconds' or 'microseconds'
+     * @returns double: Elapsed time
+     */
+    template <typename Duration>
+    double elapsed(Duration) const {
+      if (!_start.has_value()) {
+        std::cout << "Must start() the stopwatch before getting the time difference." << std::endl;
+        return 0.0;
+      }
+
+      return std::chrono::duration<double, typename Duration::period>(std::chrono::steady_clock::now() - *_start).count();
+    }
+
+    /** Helper methods for seconds, milliseconds, and microseconds */
+
+    double elapsed_s()  const { return elapsed(std::chrono::seconds{}); }
+    double elapsed_ms() const { return elapsed(std::chrono::milliseconds{}); }
+    double elapsed_us() const { return elapsed(std::chrono::microseconds{}); }
+};
+
+
 /*
 Simple timer class.
 
@@ -75,7 +150,7 @@ class IntervalTimer {
      */
     bool start() {
       // Do not allow the timer to be started without being reset
-      if (_start.has_value()) {
+      if (_start.has_value() || _end.has_value()) {
         std::cout << "Please reset the timer before starting it." << std::endl;
         return false;
       }
@@ -90,8 +165,8 @@ class IntervalTimer {
      * @returns bool: True/False of success
      */
     bool end() {
-      // Do not allow the timer to be started without being reset
-      if (_end.has_value()) {
+      // Do not allow the timer to be ended without being reset
+      if (_end.has_value() || !_start.has_value()) {
         std::cout << "Please reset the timer before ending." << std::endl;
         return false;
       }

@@ -18,18 +18,13 @@ HWINEVENTHOOK  Application::_hook = nullptr;
 
 
 
-// ---------------- Gui layers ----------------
-
-std::unique_ptr<ImWindow>              Application::_overlay_layer = nullptr;
-std::unique_ptr<ImWindow>              Application::_settings_layer = nullptr;
-std::unique_ptr<std::vector<ImWindow>> Application::_tab_group_layers = nullptr;
-std::unique_ptr<ImWindow>              Application::_hotkey_layer = nullptr;
+// ---------------- Settings Panel ----------------
+bool  Application::_settings_panel_visible = false;
 
 
 // ---------------- Misc variables ----------------
 
 bool                    Application::_overlay_visible = false;
-bool                    Application::_settings_visible = false;
 std::vector<WindowInfo> Application::_open_windows = {};
  FpsTimer               Application::_fps_timer;
 
@@ -99,44 +94,22 @@ void Application::_cleanupDeviceD3D() {
 
 // ----------------- Gui functions -----------------
 
-void Application::_setupImWindows() {
-  // ---------------- Overlay window ----------------
-  constexpr ImGuiWindowFlags OVERLAY_FLAGS = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
-  _overlay_layer = std::make_unique<ImWindow>(_WINDOW_NAME, 0.1f, nullptr, OVERLAY_FLAGS, false);
-  _overlay_layer->setLayout(LayoutType::VerticalList);
-  _overlay_layer->setMinCellSize(200.0f, 150.0f);
-  _overlay_layer->setCellSize(600.0f, 500.0f);
-  _overlay_layer->setMaxCellSize(800.0f, 600.0f);
-  _overlay_layer->setGridSize(5, 1);
-  _overlay_layer->addText("HelpText1", "BetterAltTab Overlay Active");
-  _overlay_layer->addText("HelpText2", "Use the tray icon to open Settings or Exit");
-  auto& ref = _overlay_layer->addText("FPS Label", std::to_string(_fps_timer.getFps()) + " fps");
-  ref.setUpdateFunction([&ref]() {
-    if (auto* t = std::get_if<TextData>(&ref.data)) {
-      t->label = std::to_string(_fps_timer.getFps()) + " fps";
-    }
-  });
+void Application::_setupImGuiStyles() {
+  ImGuiStyle& style = ImGui::GetStyle();
 
-  // ---------------- Settings window ----------------
-  _settings_layer = std::make_unique<ImWindow>("Settings", 1.0f, &_settings_visible, 0, false);
-  _settings_layer->setMinCellSize(200.0f, 150.0f);
-  _settings_layer->setCellSize(600.0f, 500.0f);
-  _settings_layer->setMaxCellSize(800.0f, 600.0f);
-  _settings_layer->setToolbarSide(ToolbarSide::Top);
-  _settings_layer->setGridSize(2, 2);
-  _settings_layer->addText("DescriptionText1", "This is the settings page");
-  _settings_layer->addButton("ResizeableButton", "ToggleResize", false, [](bool val) {
-    //setSettingsVisibility(false);
-    std::cout << "Toggling: " << !_settings_layer->isResizable() << "\n";
-    _settings_layer->toggleResizable(!_settings_layer->isResizable());
-  });
-  _settings_layer->addText("1", "This is the settings page", -1, true);
-  _settings_layer->addText("2", "This is the settings page", -1, true);
-  _settings_layer->addText("3", "This is the settings page", -1, true);
-  _settings_layer->addText("4", "This is the settings page", -1, true);
+  // Window title bars
+  style.Colors[ImGuiCol_TitleBg]          = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);   // normal
+  style.Colors[ImGuiCol_TitleBgActive]    = ImVec4(0.15f, 0.15f, 0.15f, 1.0f); // active/focused
+  style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.1f, 0.1f, 0.1f, 0.5f);   // collapsed (semi-transparent)
 
-  _tab_group_layers = std::make_unique<std::vector<ImWindow>>();
-  _hotkey_layer = std::make_unique<ImWindow>("Hotkeys");
+  // Collapsible headers
+  style.Colors[ImGuiCol_Header]         = ImVec4(0.2f, 0.2f, 0.2f, 0.5f); // normal header
+  style.Colors[ImGuiCol_HeaderHovered]  = ImVec4(0.3f, 0.3f, 0.3f, 0.7f); // hovered
+  style.Colors[ImGuiCol_HeaderActive]   = ImVec4(0.3f, 0.3f, 0.3f, 0.8f); // active
+
+  // ...
+  // ...
+  // ...
 }
 
 
@@ -170,7 +143,7 @@ void Application::_showTrayMenu() {
   const TCHAR* show_overlay_text = _overlay_visible ? TEXT("* Hide Overlay") : TEXT("Show Overlay");
   AppendMenu(h_menu, MF_STRING, 1, show_overlay_text);
   
-  const TCHAR* show_settings_text = _settings_visible ? TEXT("* Hide Settings") : TEXT("Show Settings");
+  const TCHAR* show_settings_text = _settings_panel_visible ? TEXT("* Hide Settings") : TEXT("Show Settings");
   AppendMenu(h_menu, MF_STRING, 2, show_settings_text);
 
   AppendMenu(h_menu, MF_SEPARATOR, 0, NULL);
@@ -184,8 +157,8 @@ void Application::_showTrayMenu() {
    _toggleOverlayVisible();
   }
   else if (cmd == 2) {
-    if (!_overlay_visible && !_settings_visible) _toggleOverlayVisible();
-    _settings_visible = !_settings_visible;
+    if (!_overlay_visible && !_settings_panel_visible) _toggleOverlayVisible();
+    _settings_panel_visible = !_settings_panel_visible;
   }
   else if (cmd == 3) {
     PostQuitMessage(0);
@@ -197,11 +170,20 @@ void Application::_toggleOverlayVisible() {
   _overlay_visible = !_overlay_visible;
 
   if (_overlay_visible) {
+    _jumpstartUI();
     SetWindowLong(_hwnd, GWL_EXSTYLE, GetWindowLong(_hwnd, GWL_EXSTYLE) & ~WS_EX_TRANSPARENT);
     ShowWindow(_hwnd, SW_SHOW);
   } else {
     SetWindowLong(_hwnd, GWL_EXSTYLE, GetWindowLong(_hwnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT);
     ShowWindow(_hwnd, SW_HIDE);
+  }
+}
+
+
+void Application::_checkInputs() {
+  // ---------------- Toggle overlay with INSERT ----------------
+  if (GetAsyncKeyState(VK_INSERT) & 1) {
+    _toggleOverlayVisible();
   }
 }
 
@@ -214,7 +196,7 @@ LRESULT CALLBACK Application::_WndProc(HWND hwnd, UINT msg, WPARAM w_param, LPAR
       // tray callback
       switch (LOWORD(l_param)) {
         case WM_LBUTTONUP: {
-          _overlay_visible = !_overlay_visible;
+          _toggleOverlayVisible();
           break;
         }
         case WM_RBUTTONUP: {
@@ -366,79 +348,60 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   ImGui_ImplDX11_Init(_pd3d_device, _pd3d_device_context);
 
   // Setup widget layers
-  _setupImWindows();
+  _setupImGuiStyles();
   return true;
 }
 
+StopwatchTimer stopwatch;
 
 void Application::runApplication() {
+  stopwatch.start();
   MSG msg = {};
   while (msg.message != WM_QUIT) {
     // ---------------- Toggle overlay with INSERT ----------------
-    if (GetAsyncKeyState(VK_INSERT) & 1) {
-      _toggleOverlayVisible();
+    _checkInputs();
+    
+    if (_overlay_visible) {
+      // (POLLING): Process all waiting messages, but don't block.
+      if (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) { 
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+        continue;
+      }
+    }
+    else {
+      // (BLOCKING): Wait (block) until a message arrives.
+      if (GetMessage(&msg, nullptr, 0U, 0U)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+      }
+      else {
+        continue; // GetMessage returns 0 on WM_QUIT
+      }
     }
 
-    if (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-      continue;
-    }
-
-    if (!_overlay_visible) {
-      Sleep(10);
-      continue;
-    }
-
-    // Start ImGui frame
+    // ------------------------ Render ------------------------
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    // Track fps
+    // FPS Tracker
     _fps_timer.update();
+    //std::cout << std::fixed << std::setprecision(2) << "\r" << _fps_timer.getFps() << " fps" << std::flush;
 
-    // ------------------------ Render UI ------------------------
-    // static ID3D11ShaderResourceView* preview_tex = nullptr;
-
-    // // build the texture
-    // const int width = 496 * 3;
-    // const int height = 279 * 3;
-    // ID3D11ShaderResourceView* tex = nullptr;
-    // buildWindowTextureFromHwnd(_open_windows[0].hwnd, _pd3d_device, width, height, tex);
-
-    // // free previous texture safely
-    // if (preview_tex)
-    //   preview_tex->Release();
-
-    // preview_tex = tex;
-
-    // // imgui render
-    // ImGui::SetNextWindowSize(ImVec2{width, height}, ImGuiCond_Once);
-    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
-    // ImGui::Begin("Preview", nullptr, ImGuiWindowFlags_NoDecoration);
-    // ImGui::Image((ImTextureID)preview_tex, ImVec2{width, height});
-    // ImGui::End();
-    // ImGui::PopStyleVar();
-    
-
+    // Draw UI
     if (_overlay_visible) {
-      _overlay_layer->render();
-      if (_settings_visible) {
-        _settings_layer->render();
+      if (_settings_panel_visible) {
+        _renderSettingsUI();
       }
     }
     
-    // TODO: One Widget layer for the 10 quick nav hotkeys. (bottom of the screen by default, but can be easily moved to the top, left, right, or your own placement).
-    // TODO: A vector of layers for the many tab groups you have set up.
-    // --> Get all processes currently open or in the system tray (create a special tab group for system tray processes, always located on the bottom right)
-
     ImGui::Render();
     float clear[4] = {0,0,0,0};
     _pd3d_device_context->OMSetRenderTargets(1, &_main_render_target_view, nullptr);
     _pd3d_device_context->ClearRenderTargetView(_main_render_target_view, clear);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    _p_swap_chain->Present(1,0);
+    _p_swap_chain->Present(Config::vsync,0);
   }
 }
 
@@ -453,4 +416,137 @@ void Application::destroyApplication() {
   UnhookWinEvent(_hook);
   DestroyWindow(_hwnd);
   UnregisterClass(_wc.lpszClassName, _wc.hInstance);
+}
+
+
+
+
+// -------------------------------- UI Rendering Helpers --------------------------------
+
+/**
+ * @brief Outputs right-aligned for an ImGui call
+ * @param fmt formatted text
+ * @param ... formatted text vars
+ */
+void ImGuiRightAlignedText(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+
+  char buf[128];
+  vsnprintf(buf, sizeof(buf), fmt, args);
+
+  va_end(args);
+
+  float avail = ImGui::GetContentRegionAvail().x;
+  float text_w = ImGui::CalcTextSize(buf).x;
+
+  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail - text_w);
+  ImGui::TextUnformatted(buf);
+}
+
+
+// -------------------------------- UI Rendering --------------------------------
+
+void Application::_renderSettingsUI() {
+  // Top-right corner placement
+  ImVec2 pos(
+    Config::monitor_size.x - (Config::monitor_size.x * Config::settings_panel_width_percent),   // X aligned to right edge
+    0.0f                                                                                        // Y locked to top
+  );
+
+  // Sizing
+  ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
+  ImGui::SetNextWindowSize(
+    ImVec2(
+      Config::monitor_size.x * Config::settings_panel_width_percent,
+      Config::monitor_size.y * Config::settings_panel_height_percent
+    ),
+    ImGuiCond_Always
+  );
+  
+  constexpr ImGuiWindowFlags SETTINGS_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+  if (ImGui::Begin("Settings", &_settings_panel_visible, SETTINGS_PANEL_FLAGS)) {
+    static const float TEXT_HEIGHT = ImGui::CalcTextSize("Placeholder Text").y;
+    const float SETTINGS_PANEL_HEIGHT = ImGui::GetWindowSize().y;
+
+    // --- Toolbar Area ---
+    {
+      // Add a visual separator line before the toolbar content (optional)
+      // ImGui::Separator(); 
+
+      // Style/Color changes for the toolbar background can go here (advanced)
+
+      // Toolbar Buttons
+      if (ImGui::Button("📂 New Project")) {
+        // Handle 'New Project' action
+      }
+      ImGui::SameLine(); // Puts the next widget on the same line
+
+      if (ImGui::Button("💾 Save")) {
+        // Handle 'Save' action
+      }
+      ImGui::SameLine();
+
+      if (ImGui::Button("↩️ Undo")) {
+        // Handle 'Undo' action
+      }
+      ImGui::SameLine();
+      
+      // Add some spacing between the toolbar and the main content
+      ImGui::Spacing();
+      ImGui::Spacing();
+      ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Spacing();
+    }
+
+    // --- Main Content Area ---
+    {
+      // Add the main action buttons/controls here
+      //ImGui::Spacing();
+      
+      // Panel Width/Height
+      constexpr float SETTINGS_PANEL_MIN_WIDTH = 0.2f;
+      constexpr float SETTINGS_PANEL_MAX_WIDTH = 1.0f;
+      constexpr float SETTINGS_PANEL_MIN_HEIGHT = 0.2f;
+      constexpr float SETTINGS_PANEL_MAX_HEIGHT = 1.0f;
+      static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.75f * 4.0f; // Boxes are the size of 4 characters
+      static float width_tmp = Config::settings_panel_width_percent;
+      static float height_tmp = Config::settings_panel_height_percent;
+      ImGui::PushItemWidth(SLIDER_WIDTH);
+      ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.2f");
+      width_tmp = std::clamp(width_tmp, SETTINGS_PANEL_MIN_WIDTH, SETTINGS_PANEL_MAX_WIDTH);
+      if (!ImGui::IsItemActive() && width_tmp != Config::settings_panel_width_percent) {
+        Config::settings_panel_width_percent = width_tmp;
+      }
+      ImGui::SameLine(0.0f, SLIDER_WIDTH);
+      ImGui::InputFloat("Panel Height (%)", &height_tmp, 0.0f, 0.0f, "%.2f");
+      height_tmp = std::clamp(height_tmp, SETTINGS_PANEL_MIN_HEIGHT, SETTINGS_PANEL_MAX_HEIGHT);
+      if (!ImGui::IsItemActive() && height_tmp != Config::settings_panel_height_percent) {
+        Config::settings_panel_height_percent = height_tmp;
+      }
+      ImGui::PopItemWidth();
+      
+      // Vsync Button
+      ImGui::Spacing();
+      static bool vsync_checkbox;
+      if (ImGui::Checkbox("VSync (Recommended)", &vsync_checkbox)) {
+        Config::vsync = vsync_checkbox;
+      }
+
+      // BetterAltTab Data + Debug at the bottom of the window
+      static double fps_display;
+      if (stopwatch.elapsed_s() > 0.1) {
+        fps_display = _fps_timer.getFps();
+        stopwatch.reset();
+        stopwatch.start();
+      }
+      
+      const float DESCRIPTION_POS = (SETTINGS_PANEL_HEIGHT - (TEXT_HEIGHT * 2.7f));
+      ImGui::SetCursorPosY(DESCRIPTION_POS); // 5% as padding
+      ImGui::Text("%.0f fps", fps_display);
+      ImGui::Text("BetterAltTab %s", Config::VERSION);
+    }
+  }
+  ImGui::End();
 }
