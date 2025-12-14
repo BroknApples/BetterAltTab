@@ -17,16 +17,11 @@ HICON          Application::_h_icon = LoadIcon(NULL, IDI_APPLICATION); // Defaul
 HWINEVENTHOOK  Application::_hook = nullptr;
 
 
-
-// ---------------- Settings Panel ----------------
-bool  Application::_settings_panel_visible = false;
-
-
 // ---------------- Misc variables ----------------
 
 bool                    Application::_overlay_visible = false;
 std::vector<WindowInfo> Application::_open_windows = {};
- FpsTimer               Application::_fps_timer;
+FpsTimer                Application::_fps_timer;
 
 
 // ---------------- DirectX functions ----------------
@@ -92,27 +87,6 @@ void Application::_cleanupDeviceD3D() {
 }
 
 
-// ----------------- Gui functions -----------------
-
-void Application::_setupImGuiStyles() {
-  ImGuiStyle& style = ImGui::GetStyle();
-
-  // Window title bars
-  style.Colors[ImGuiCol_TitleBg]          = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);   // normal
-  style.Colors[ImGuiCol_TitleBgActive]    = ImVec4(0.15f, 0.15f, 0.15f, 1.0f); // active/focused
-  style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.1f, 0.1f, 0.1f, 0.5f);   // collapsed (semi-transparent)
-
-  // Collapsible headers
-  style.Colors[ImGuiCol_Header]         = ImVec4(0.2f, 0.2f, 0.2f, 0.5f); // normal header
-  style.Colors[ImGuiCol_HeaderHovered]  = ImVec4(0.3f, 0.3f, 0.3f, 0.7f); // hovered
-  style.Colors[ImGuiCol_HeaderActive]   = ImVec4(0.3f, 0.3f, 0.3f, 0.8f); // active
-
-  // ...
-  // ...
-  // ...
-}
-
-
 // ----------------- Tray functions -----------------
 
 void Application::_addTrayIcon() {
@@ -143,7 +117,7 @@ void Application::_showTrayMenu() {
   const TCHAR* show_overlay_text = _overlay_visible ? TEXT("* Hide Overlay") : TEXT("Show Overlay");
   AppendMenu(h_menu, MF_STRING, 1, show_overlay_text);
   
-  const TCHAR* show_settings_text = _settings_panel_visible ? TEXT("* Hide Settings") : TEXT("Show Settings");
+  const TCHAR* show_settings_text = ImGuiUI::isSettingsPanelVisible() ? TEXT("* Hide Settings") : TEXT("Show Settings");
   AppendMenu(h_menu, MF_STRING, 2, show_settings_text);
 
   AppendMenu(h_menu, MF_SEPARATOR, 0, NULL);
@@ -157,8 +131,9 @@ void Application::_showTrayMenu() {
    _toggleOverlayVisible();
   }
   else if (cmd == 2) {
-    if (!_overlay_visible && !_settings_panel_visible) _toggleOverlayVisible();
-    _settings_panel_visible = !_settings_panel_visible;
+    const bool NOT_VIS = !ImGuiUI::isSettingsPanelVisible();
+    if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
+    ImGuiUI::setSettingsPanelVisibility(NOT_VIS);
   }
   else if (cmd == 3) {
     PostQuitMessage(0);
@@ -181,7 +156,7 @@ void Application::_toggleOverlayVisible() {
 
 
 void Application::_checkInputs() {
-  // ---------------- Toggle overlay with INSERT ----------------
+  // Toggle overlay with INSERT
   if (GetAsyncKeyState(VK_INSERT) & 1) {
     _toggleOverlayVisible();
   }
@@ -348,14 +323,12 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   ImGui_ImplDX11_Init(_pd3d_device, _pd3d_device_context);
 
   // Setup widget layers
-  _setupImGuiStyles();
+  ImGuiUI::_setupImGuiStyles();
   return true;
 }
 
-StopwatchTimer stopwatch;
 
 void Application::runApplication() {
-  stopwatch.start();
   MSG msg = {};
   while (msg.message != WM_QUIT) {
     // ---------------- Toggle overlay with INSERT ----------------
@@ -385,15 +358,10 @@ void Application::runApplication() {
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    // FPS Tracker
-    _fps_timer.update();
-    //std::cout << std::fixed << std::setprecision(2) << "\r" << _fps_timer.getFps() << " fps" << std::flush;
-
     // Draw UI
+    _fps_timer.update();
     if (_overlay_visible) {
-      if (_settings_panel_visible) {
-        _renderSettingsUI();
-      }
+      ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta());
     }
     
     ImGui::Render();
@@ -416,137 +384,4 @@ void Application::destroyApplication() {
   UnhookWinEvent(_hook);
   DestroyWindow(_hwnd);
   UnregisterClass(_wc.lpszClassName, _wc.hInstance);
-}
-
-
-
-
-// -------------------------------- UI Rendering Helpers --------------------------------
-
-/**
- * @brief Outputs right-aligned for an ImGui call
- * @param fmt formatted text
- * @param ... formatted text vars
- */
-void ImGuiRightAlignedText(const char* fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-
-  char buf[128];
-  vsnprintf(buf, sizeof(buf), fmt, args);
-
-  va_end(args);
-
-  float avail = ImGui::GetContentRegionAvail().x;
-  float text_w = ImGui::CalcTextSize(buf).x;
-
-  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail - text_w);
-  ImGui::TextUnformatted(buf);
-}
-
-
-// -------------------------------- UI Rendering --------------------------------
-
-void Application::_renderSettingsUI() {
-  // Top-right corner placement
-  ImVec2 pos(
-    Config::monitor_size.x - (Config::monitor_size.x * Config::settings_panel_width_percent),   // X aligned to right edge
-    0.0f                                                                                        // Y locked to top
-  );
-
-  // Sizing
-  ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
-  ImGui::SetNextWindowSize(
-    ImVec2(
-      Config::monitor_size.x * Config::settings_panel_width_percent,
-      Config::monitor_size.y * Config::settings_panel_height_percent
-    ),
-    ImGuiCond_Always
-  );
-  
-  constexpr ImGuiWindowFlags SETTINGS_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-  if (ImGui::Begin("Settings", &_settings_panel_visible, SETTINGS_PANEL_FLAGS)) {
-    static const float TEXT_HEIGHT = ImGui::CalcTextSize("Placeholder Text").y;
-    const float SETTINGS_PANEL_HEIGHT = ImGui::GetWindowSize().y;
-
-    // --- Toolbar Area ---
-    {
-      // Add a visual separator line before the toolbar content (optional)
-      // ImGui::Separator(); 
-
-      // Style/Color changes for the toolbar background can go here (advanced)
-
-      // Toolbar Buttons
-      if (ImGui::Button("📂 New Project")) {
-        // Handle 'New Project' action
-      }
-      ImGui::SameLine(); // Puts the next widget on the same line
-
-      if (ImGui::Button("💾 Save")) {
-        // Handle 'Save' action
-      }
-      ImGui::SameLine();
-
-      if (ImGui::Button("↩️ Undo")) {
-        // Handle 'Undo' action
-      }
-      ImGui::SameLine();
-      
-      // Add some spacing between the toolbar and the main content
-      ImGui::Spacing();
-      ImGui::Spacing();
-      ImGui::Separator();
-      ImGui::Spacing();
-      ImGui::Spacing();
-    }
-
-    // --- Main Content Area ---
-    {
-      // Add the main action buttons/controls here
-      //ImGui::Spacing();
-      
-      // Panel Width/Height
-      constexpr float SETTINGS_PANEL_MIN_WIDTH = 0.2f;
-      constexpr float SETTINGS_PANEL_MAX_WIDTH = 1.0f;
-      constexpr float SETTINGS_PANEL_MIN_HEIGHT = 0.2f;
-      constexpr float SETTINGS_PANEL_MAX_HEIGHT = 1.0f;
-      static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.75f * 4.0f; // Boxes are the size of 4 characters
-      static float width_tmp = Config::settings_panel_width_percent;
-      static float height_tmp = Config::settings_panel_height_percent;
-      ImGui::PushItemWidth(SLIDER_WIDTH);
-      ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.2f");
-      width_tmp = std::clamp(width_tmp, SETTINGS_PANEL_MIN_WIDTH, SETTINGS_PANEL_MAX_WIDTH);
-      if (!ImGui::IsItemActive() && width_tmp != Config::settings_panel_width_percent) {
-        Config::settings_panel_width_percent = width_tmp;
-      }
-      ImGui::SameLine(0.0f, SLIDER_WIDTH);
-      ImGui::InputFloat("Panel Height (%)", &height_tmp, 0.0f, 0.0f, "%.2f");
-      height_tmp = std::clamp(height_tmp, SETTINGS_PANEL_MIN_HEIGHT, SETTINGS_PANEL_MAX_HEIGHT);
-      if (!ImGui::IsItemActive() && height_tmp != Config::settings_panel_height_percent) {
-        Config::settings_panel_height_percent = height_tmp;
-      }
-      ImGui::PopItemWidth();
-      
-      // Vsync Button
-      ImGui::Spacing();
-      static bool vsync_checkbox;
-      if (ImGui::Checkbox("VSync (Recommended)", &vsync_checkbox)) {
-        Config::vsync = vsync_checkbox;
-      }
-
-      // BetterAltTab Data + Debug at the bottom of the window
-      static double fps_display;
-      if (stopwatch.elapsed_s() > 0.1) {
-        fps_display = _fps_timer.getFps();
-        stopwatch.reset();
-        stopwatch.start();
-      }
-      
-      const float DESCRIPTION_POS = (SETTINGS_PANEL_HEIGHT - (TEXT_HEIGHT * 2.7f));
-      ImGui::SetCursorPosY(DESCRIPTION_POS); // 5% as padding
-      ImGui::Text("%.0f fps", fps_display);
-      ImGui::Text("BetterAltTab %s", Config::VERSION);
-    }
-  }
-  ImGui::End();
 }

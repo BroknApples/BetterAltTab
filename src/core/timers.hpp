@@ -21,6 +21,7 @@ class FpsTimer {
   private:
     std::chrono::steady_clock::time_point _last_frame;
     double _fps;
+    double _delta;
 
   public:
     /**
@@ -36,13 +37,15 @@ class FpsTimer {
      */
     void update() {
       auto now = std::chrono::steady_clock::now();
-      std::chrono::duration<double> delta = now - _last_frame;
+      std::chrono::duration<double> frametime = now - _last_frame;
       _last_frame = now;
 
-      if (delta.count() > 0.0) {
-        _fps = 1.0 / delta.count();
+      _delta = frametime.count();
+      if (_delta > 0.0) {
+        _fps = 1.0 / _delta;
       } 
     }
+
 
     /**
      * @brief Gets the fps tracked in this timer
@@ -50,6 +53,15 @@ class FpsTimer {
      */
     double getFps() const {
       return _fps;
+    }
+
+
+    /**
+     * @brief Gets the frametime
+     * @returns double: dt
+     */
+    double getDelta() const {
+      return _delta;
     }
 };
 

@@ -17,6 +17,7 @@ set(SOURCES
   src/main.cpp
   src/core/config.cpp
   src/core/application.cpp
+  src/core/imgui_ui.cpp
   src/core/win_utils.cpp
   src/core/resources.rc
 )

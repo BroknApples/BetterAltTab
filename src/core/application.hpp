@@ -20,10 +20,11 @@
 #include "backends/imgui_impl_win32.h"
 #include "backends/imgui_impl_dx11.h"
 
-#include "timers.hpp"
+#include "imgui_ui.hpp"
 #include "config.hpp"
-#include "resources.h"
 #include "win_utils.hpp"
+#include "resources.h"
+#include "timers.hpp"
 
 
 // Setup ImGUI WndProc
@@ -59,10 +60,6 @@ class Application {
     static HWINEVENTHOOK _hook;
 
 
-    // ---------------- Settings Panel ----------------
-    static bool _settings_panel_visible;
-
-
     // ---------------- Misc variables ----------------
     static bool _overlay_visible;
     static std::vector<WindowInfo> _open_windows;
@@ -96,12 +93,6 @@ class Application {
      * @brief Cleans up the DirectX device
      */
     static void _cleanupDeviceD3D();
-
-
-    /**
-     * @brief Sets up the ImGui style vars
-     */
-    static void _setupImGuiStyles();
 
 
     /**
@@ -193,10 +184,6 @@ class Application {
      * @brief Cleanup application
      */
     static void destroyApplication();
-  
-  
-  private:
-    static void _renderSettingsUI();
 };
 
 
