@@ -3,11 +3,12 @@
 
 // ----------------- Static Vars -----------------
 
-double ImGuiUI::_fps_display_accumulator = 0.0;
-
 bool ImGuiUI::_tab_groups_visible = false;
 bool ImGuiUI::_hotkey_panel_visible = false;
 bool ImGuiUI::_settings_panel_visible = false;
+
+double ImGuiUI::_fps_display_accumulator = 0.0;
+bool ImGuiUI::_hotkey_layout_horizontal = false;
 
 
 // ----------------- Private Functions -----------------
@@ -115,14 +116,12 @@ void ImGuiUI::_setupImGuiStyles() {
 }
 
 
-
-
 // -------------------------------- Draw UI --------------------------------
 
 void ImGuiUI::drawUI(const double fps, const double delta) {
-  if (_tab_groups_visible) { _renderTabGroupsUI(); }
-  if (_hotkey_panel_visible) { _renderHotkeyUI(); }
-  if (_settings_panel_visible) { _renderSettingsUI(fps, delta); }
+  if (_tab_groups_visible)      { _renderTabGroupsUI(); }
+  if (_hotkey_panel_visible)    { _renderHotkeyUI(); }
+  if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
 }
 
 
@@ -159,38 +158,68 @@ void ImGuiUI::_renderTabGroupsUI() {
 
 
 void ImGuiUI::_renderHotkeyUI() {
+  static constexpr ImGuiWindowFlags HOTKEY_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove;
 
+  if (_hotkey_layout_horizontal) { // horizontal Layout
+    // Bottom-left corner placement
+    ImVec2 size(
+      Config::monitor_size.x * _HOTKEY_PANEL_LENGTH_PERCENT / 100.0f,
+      Config::monitor_size.x * _HOTKEY_PANEL_HEIGHT_PERCENT / 100.0f
+    );
+    ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(0.0f, Config::monitor_size.y), ImGuiCond_Always, _BOTTOM_LEFT_CORNER_POS);
+    
+    
+    if (ImGui::Begin("Hotkeys", &_hotkey_panel_visible, HOTKEY_PANEL_FLAGS)) {
+      // --- Main Content Area ---
+      if (ImGui::BeginChild("Main Content Area")) {
+
+      }
+      ImGui::EndChild();
+    }
+    ImGui::End();
+  }
+  else { // Vertical layout
+    // Bottom-left corner placement
+    ImVec2 size(
+      Config::monitor_size.x * _HOTKEY_PANEL_HEIGHT_PERCENT / 100.0f,
+      Config::monitor_size.x * _HOTKEY_PANEL_LENGTH_PERCENT / 100.0f
+    );
+    ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(0.0f, Config::monitor_size.y), ImGuiCond_Always, _BOTTOM_LEFT_CORNER_POS);
+    
+    if (ImGui::Begin("Hotkeys", &_hotkey_panel_visible, HOTKEY_PANEL_FLAGS)) {
+      // --- Main Content Area ---
+      if (ImGui::BeginChild("Main Content Area")) {
+
+      }
+      ImGui::EndChild();
+    }
+    ImGui::End();
+  }
 }
 
 
 void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
   // Top-right corner placement
-  ImVec2 pos(
-    Config::monitor_size.x * (1.0f - Config::settings_panel_width_percent / 100.0f),  // X aligned to right edge
-    0.0f                                                                              // Y locked to top
+  ImVec2 size(
+    Config::monitor_size.x * Config::settings_panel_width_percent / 100.0f,
+    Config::monitor_size.y * Config::settings_panel_height_percent / 100.0f
   );
 
-  // Sizing
-  ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
-  ImGui::SetNextWindowSize(
-    ImVec2(
-      Config::monitor_size.x * Config::settings_panel_width_percent / 100.0f,
-      Config::monitor_size.y * Config::settings_panel_height_percent / 100.0f
-    ),
-    ImGuiCond_Always
-  );
+  ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+  ImGui::SetNextWindowPos(ImVec2(Config::monitor_size.x, 0.0f), ImGuiCond_Always, _TOP_RIGHT_CORNER_POS);
   
-  constexpr ImGuiWindowFlags SETTINGS_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+  static constexpr ImGuiWindowFlags SETTINGS_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
   if (ImGui::Begin("Settings", &_settings_panel_visible, SETTINGS_PANEL_FLAGS)) {
     static const float TEXT_HEIGHT = ImGui::CalcTextSize("Placeholder Text").y;
     const float SETTINGS_PANEL_HEIGHT = ImGui::GetWindowSize().y;
+    const float DESCRIPTION_POS = TEXT_HEIGHT * 2.7f * 1.67f; // SIX-SEVEN !!!
+    const ImVec2 MAIN_CONTENT_SIZE(0.0f, -DESCRIPTION_POS);
 
     // --- Toolbar Area ---
     {
-      // Add a visual separator line before the toolbar content (optional)
-      // ImGui::Separator(); 
-
-      // Style/Color changes for the toolbar background can go here (advanced)
+      // NOTE: Style/Color changes for the toolbar background can go here
 
       // Toolbar Buttons
       if (ImGui::Button("📂 New Project")) {
@@ -206,61 +235,72 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
       if (ImGui::Button("↩️ Undo")) {
         // Handle 'Undo' action
       }
-      ImGui::SameLine();
-      
-      // Add some spacing between the toolbar and the main content
-      ImGui::Spacing();
-      ImGui::Spacing();
-      ImGui::Separator();
-      ImGui::Spacing();
-      ImGui::Spacing();
     }
 
-    // --- Main Content Area ---
-    {
-      // Add the main action buttons/controls here
-      //ImGui::Spacing();
-      
-      // Panel Width/Height
-      constexpr float SETTINGS_PANEL_MIN_WIDTH = 20.0f;
-      constexpr float SETTINGS_PANEL_MAX_WIDTH = 100.0f;
-      constexpr float SETTINGS_PANEL_MIN_HEIGHT = 20.0f;
-      constexpr float SETTINGS_PANEL_MAX_HEIGHT = 100.0f;
-      static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.80f * 4.0f; // Boxes are the size of 4 characters
-      static float width_tmp = Config::settings_panel_width_percent;
-      static float height_tmp = Config::settings_panel_height_percent;
-      ImGui::PushItemWidth(SLIDER_WIDTH);
-      if (ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.1f")) {
-        width_tmp = std::clamp(width_tmp, SETTINGS_PANEL_MIN_WIDTH, SETTINGS_PANEL_MAX_WIDTH);
-      }
-      if (!ImGui::IsItemActive() && (width_tmp != Config::settings_panel_width_percent)) {
-        Config::settings_panel_width_percent = width_tmp;
-      }
-      ImGui::SameLine(0.0f, SLIDER_WIDTH);
-      if (ImGui::InputFloat("Panel Height (%)", &height_tmp, 0.0f, 0.0f, "%.1f")) {
-        height_tmp = std::clamp(height_tmp, SETTINGS_PANEL_MIN_HEIGHT, SETTINGS_PANEL_MAX_HEIGHT);
-      }
-      if (!ImGui::IsItemActive() && (height_tmp != Config::settings_panel_height_percent)) {
-        Config::settings_panel_height_percent = height_tmp;
-      }
-      ImGui::PopItemWidth();
-      
-      // Vsync Button
-      ImGui::Spacing();
-      static bool vsync_checkbox;
-      if (ImGui::Checkbox("VSync (Recommended)", &vsync_checkbox)) {
-        Config::vsync = vsync_checkbox;
-      }
+    // Add some spacing between the toolbar and the main content
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    ImGui::Spacing();
 
-      // BetterAltTab Data + Debug at the bottom of the window
+    // --- Main Content Area ---
+    if (ImGui::BeginChild("Main Content Area", MAIN_CONTENT_SIZE)) {
+      if (ImGui::CollapsingHeader("Graphics Options")) {
+        static bool vsync_checkbox;
+        if (ImGui::Checkbox("VSync (Recommended)", &vsync_checkbox)) {
+          Config::vsync = vsync_checkbox;
+        }
+      }
+      
+      if (ImGui::CollapsingHeader("Settings Panel Options")) {
+        // Panel Width/Height
+        constexpr float SETTINGS_PANEL_MIN_WIDTH = 20.0f;
+        constexpr float SETTINGS_PANEL_MAX_WIDTH = 100.0f;
+        constexpr float SETTINGS_PANEL_MIN_HEIGHT = 20.0f;
+        constexpr float SETTINGS_PANEL_MAX_HEIGHT = 100.0f;
+        static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.80f * 4.0f; // Boxes are the size of 4 characters
+        static float width_tmp = Config::settings_panel_width_percent;
+        static float height_tmp = Config::settings_panel_height_percent;
+        ImGui::PushItemWidth(SLIDER_WIDTH);
+        if (ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.1f")) {
+          width_tmp = std::clamp(width_tmp, SETTINGS_PANEL_MIN_WIDTH, SETTINGS_PANEL_MAX_WIDTH);
+        }
+        if (!ImGui::IsItemActive() && (width_tmp != Config::settings_panel_width_percent)) {
+          Config::settings_panel_width_percent = width_tmp;
+        }
+        ImGui::SameLine(0.0f, SLIDER_WIDTH);
+        if (ImGui::InputFloat("Panel Height (%)", &height_tmp, 0.0f, 0.0f, "%.1f")) {
+          height_tmp = std::clamp(height_tmp, SETTINGS_PANEL_MIN_HEIGHT, SETTINGS_PANEL_MAX_HEIGHT);
+        }
+        if (!ImGui::IsItemActive() && (height_tmp != Config::settings_panel_height_percent)) {
+          Config::settings_panel_height_percent = height_tmp;
+        }
+        ImGui::PopItemWidth();
+      }
+      
+      if (ImGui::CollapsingHeader("Hotkey Panel Options")) {
+        ImGui::Checkbox("Horizontal Layout", &_hotkey_layout_horizontal);
+      }
+    }
+    ImGui::EndChild();
+
+    // Add some spacing between the main content and the application data
+    //ImGui::SetCursorPosY(DESCRIPTION_POS); // 5% as padding
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    // --- BetterAltTab Data -- (Bottom of the window) ---
+    {
       _fps_display_accumulator += delta;
       if (_fps_display_accumulator > _FPS_DISPLAY_UPDATE_DELAY) {
         _fps_display_accumulator -= _FPS_DISPLAY_UPDATE_DELAY;
       }
-      
-      const float DESCRIPTION_POS = (SETTINGS_PANEL_HEIGHT - (TEXT_HEIGHT * 2.7f));
-      ImGui::SetCursorPosY(DESCRIPTION_POS); // 5% as padding
-      ImGui::Text("%.0f fps", fps);
+      const float display_fps = std::min(fps, 999.0);
+      ImGui::Text("%4.0f fps    %3.0f ms", fps, (delta * 1000.0));
       ImGui::Text("BetterAltTab %s", Config::VERSION);
     }
   }

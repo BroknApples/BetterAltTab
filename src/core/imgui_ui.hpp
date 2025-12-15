@@ -1,8 +1,12 @@
 #ifndef IMGUI_UI_HPP
 #define IMGUI_UI_HPP
 
+#ifndef NOMINMAX
+  #define NOMINMAX
+#endif // NOMINMAX
 
 #include <cstdio>
+#include <algorithm>
 #include <windows.h>
 
 #include "imgui.h"
@@ -20,6 +24,12 @@ class ImGuiUI {
   private:
     // Constants
     static constexpr double _FPS_DISPLAY_UPDATE_DELAY = 0.2;
+    static constexpr float _HOTKEY_PANEL_LENGTH_PERCENT = 30.0f;
+    static constexpr float _HOTKEY_PANEL_HEIGHT_PERCENT = 10.0f;
+    static constexpr ImVec2 _BOTTOM_LEFT_CORNER_POS = ImVec2(0.0f, 1.0f);
+    static constexpr ImVec2 _TOP_LEFT_CORNER_POS = ImVec2(0.0f, 0.0f);
+    static constexpr ImVec2 _TOP_RIGHT_CORNER_POS = ImVec2(1.0f, 0.0f);
+    static constexpr ImVec2 _BOTTOM_RIGHT_CORNER_POS = ImVec2(1.0f, 1.0f);
 
     // vars
     static bool _tab_groups_visible;
@@ -27,6 +37,7 @@ class ImGuiUI {
     static bool _settings_panel_visible;
 
     static double _fps_display_accumulator;
+    static bool _hotkey_layout_horizontal; // True = horizontal, False = Vertical
 
   public:
     /**

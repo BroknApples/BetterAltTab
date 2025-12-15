@@ -115,28 +115,53 @@ void Application::_showTrayMenu() {
   HMENU h_menu = CreatePopupMenu();
 
   const TCHAR* show_overlay_text = _overlay_visible ? TEXT("* Hide Overlay") : TEXT("Show Overlay");
-  AppendMenu(h_menu, MF_STRING, 1, show_overlay_text);
+  AppendMenu(h_menu, MF_STRING, TrayItems::SHOW_OVERLAY, show_overlay_text);
+  AppendMenu(h_menu, MF_SEPARATOR, TrayItems::SEPARATOR, NULL);
   
-  const TCHAR* show_settings_text = ImGuiUI::isSettingsPanelVisible() ? TEXT("* Hide Settings") : TEXT("Show Settings");
-  AppendMenu(h_menu, MF_STRING, 2, show_settings_text);
+  const TCHAR* show_tab_groups_text = ImGuiUI::isTabGroupsVisible() ? TEXT("* Hide Tabs") : TEXT("Show Tabs");
+  AppendMenu(h_menu, MF_STRING, TrayItems::SHOW_TAB_GROUPS, show_tab_groups_text);
 
-  AppendMenu(h_menu, MF_SEPARATOR, 0, NULL);
-  AppendMenu(h_menu, MF_STRING, 3, TEXT("Exit"));
+  const TCHAR* show_hotkeys_text = ImGuiUI::isHotkeyPanelVisible() ? TEXT("* Hide Hotkeys") : TEXT("Show Hotkeys");
+  AppendMenu(h_menu, MF_STRING, TrayItems::SHOW_HOTKEYS, show_hotkeys_text);
+
+  const TCHAR* show_settings_text = ImGuiUI::isSettingsPanelVisible() ? TEXT("* Hide Settings") : TEXT("Show Settings");
+  AppendMenu(h_menu, MF_STRING, TrayItems::SHOW_SETTINGS, show_settings_text);
+
+  AppendMenu(h_menu, MF_SEPARATOR, TrayItems::SEPARATOR, NULL);
+  AppendMenu(h_menu, MF_STRING, TrayItems::EXIT_APP, TEXT("Exit"));
 
   SetForegroundWindow(_hwnd); // required for menu to disappear correctly
-  int cmd = TrackPopupMenu(h_menu, TPM_RETURNCMD | TPM_NONOTIFY, pt.x, pt.y, 0, _hwnd, NULL);
+  const int cmd = TrackPopupMenu(h_menu, TPM_RETURNCMD | TPM_NONOTIFY, pt.x, pt.y, 0, _hwnd, NULL);
   DestroyMenu(h_menu);
 
-  if (cmd == 1) {
-   _toggleOverlayVisible();
-  }
-  else if (cmd == 2) {
-    const bool NOT_VIS = !ImGuiUI::isSettingsPanelVisible();
-    if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
-    ImGuiUI::setSettingsPanelVisibility(NOT_VIS);
-  }
-  else if (cmd == 3) {
-    PostQuitMessage(0);
+  switch (cmd) {
+    case TrayItems::SHOW_OVERLAY: {
+      _toggleOverlayVisible();
+      break;
+    }
+    case TrayItems::SHOW_TAB_GROUPS: {
+      const bool NOT_VIS = !ImGuiUI::isTabGroupsVisible();
+      if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
+      ImGuiUI::setTabGroupsVisibility(NOT_VIS);
+      break;
+    }
+    case TrayItems::SHOW_HOTKEYS: {
+      const bool NOT_VIS = !ImGuiUI::isHotkeyPanelVisible();
+      if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
+      ImGuiUI::setHotkeyPanelVisibility(NOT_VIS);
+      break;
+    }
+    case TrayItems::SHOW_SETTINGS: {
+      const bool NOT_VIS = !ImGuiUI::isSettingsPanelVisible();
+      if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
+      ImGuiUI::setSettingsPanelVisibility(NOT_VIS);
+      break;
+    }
+    case TrayItems::EXIT_APP: {
+      PostQuitMessage(0);
+      break;
+    }
+      
   }
 }
 

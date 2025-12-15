@@ -58,6 +58,14 @@ class Application {
     static HWND _hwnd;
     static HICON _h_icon;
     static HWINEVENTHOOK _hook;
+    enum TrayItems {
+      SEPARATOR,
+      SHOW_OVERLAY,
+      SHOW_TAB_GROUPS,
+      SHOW_HOTKEYS,
+      SHOW_SETTINGS,
+      EXIT_APP
+    };
 
 
     // ---------------- Misc variables ----------------
