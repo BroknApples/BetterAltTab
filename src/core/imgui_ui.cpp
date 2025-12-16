@@ -118,9 +118,13 @@ void ImGuiUI::_setupImGuiStyles() {
 
 // -------------------------------- Draw UI --------------------------------
 
-void ImGuiUI::drawUI(const double fps, const double delta) {
-  if (_tab_groups_visible)      { _renderTabGroupsUI(); }
-  if (_hotkey_panel_visible)    { _renderHotkeyUI(); }
+void ImGuiUI::drawUI(const double fps, const double delta,
+    const std::vector<std::pair<std::string, std::vector<std::shared_ptr<WindowInfo>>>>& tab_groups,
+    const std::vector<std::pair<std::string, WindowItemLayout>> tab_group_layout,
+    const std::array<std::shared_ptr<WindowInfo>, 10>& hotkeys,
+    const WindowItemLayout hotkey_layout) {
+  if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layout); }
+  if (_hotkey_panel_visible)    { _renderHotkeyUI(hotkeys, hotkey_layout); }
   if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
 }
 
@@ -152,12 +156,13 @@ void ImGuiRightAlignedText(const char* fmt, ...) {
 // -------------------------------- UI Rendering --------------------------------
 
 
-void ImGuiUI::_renderTabGroupsUI() {
+void ImGuiUI::_renderTabGroupsUI(const std::vector<std::pair<std::string, std::vector<std::shared_ptr<WindowInfo>>>>& tab_groups,
+  const std::vector<std::pair<std::string, WindowItemLayout>> tab_group_layout) {
   
 }
 
 
-void ImGuiUI::_renderHotkeyUI() {
+void ImGuiUI::_renderHotkeyUI(const std::array<std::shared_ptr<WindowInfo>, 10>& hotkeys, const WindowItemLayout hotkey_layout) {
   static constexpr ImGuiWindowFlags HOTKEY_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove;
 
   if (_hotkey_layout_horizontal) { // horizontal Layout
@@ -280,6 +285,55 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
       }
       
       if (ImGui::CollapsingHeader("Hotkey Panel Options")) {
+        if (ImGui::CollapsingHeader("Keybinds")) {
+          static constexpr const char* PRESS_KEY_PLACEHOLDER = "...";
+          static int active_bind = -1;
+
+          /**
+           * @brief Function which actually handles the rebinding of a key.
+           */
+          if (active_bind != -1) {
+            ImGuiIO& io = ImGui::GetIO();
+            bool ctrl = io.KeyCtrl;
+            bool shift = io.KeyShift;
+            bool alt = io.KeyAlt;
+            // bool super = io.KeySuper;
+
+            if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+              active_bind = -1;
+            }
+
+            for (int key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key++) {
+              ImGuiKey k = static_cast<ImGuiKey>(key);
+
+              // Skip modifiers
+              if (k == ImGuiMod_Ctrl || k == ImGuiMod_Shift ||
+                  k == ImGuiMod_Alt  || k == ImGuiMod_Super) {
+                continue;
+              }
+
+              if (ImGui::IsKeyPressed(k)) {
+                Config::keybinds[active_bind] = Keybind{k, ctrl, shift, alt};
+                active_bind = -1;
+                break;
+              }
+            }
+          }
+
+          for (int i = 0; i < 10; i++) {
+            const char* label = (active_bind == i) ?
+              PRESS_KEY_PLACEHOLDER :
+              ImGui::GetKeyName(Config::keybinds[i].key);
+
+            if (ImGui::Button(label)) {
+              active_bind = i;
+            }
+          }
+        }
+
+
+        // Other Settings
+
         ImGui::Checkbox("Horizontal Layout", &_hotkey_layout_horizontal);
       }
     }

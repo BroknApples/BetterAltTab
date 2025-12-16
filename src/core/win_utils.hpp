@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <algorithm>
+#include <memory>
 #include <d3d11.h>
 #include <windows.h>
 #include <dwmapi.h>
@@ -21,6 +22,10 @@
 #ifndef PW_RENDERFULLCONTENT
 #define PW_RENDERFULLCONTENT 0x00000002
 #endif
+
+// ---------------------- Struct definitions ----------------------
+
+struct WindowInfo;
 
 
 // ---------------------- Instance functions ----------------------
@@ -34,19 +39,6 @@ bool isInstanceUnique();
 
 
 // ---------------------- Window functions ----------------------
-
-
-/**
- * @brief Holds basic information for a Windows window
- */
-struct WindowInfo {
-  WindowInfo() = default;
-  WindowInfo(HWND h, const std::string& t) : hwnd(h), title(t) {}
-  WindowInfo(const std::string& t, HWND h) : hwnd(h), title(t) {}
-
-  HWND hwnd;
-  std::string title;
-};
 
 
 /**
@@ -65,11 +57,11 @@ bool isAltTabWindow(HWND hwnd);
 
 
 /**
- * @brief Adds a window to a list if its an alt-tab window and currently visible.
+ * @brief Adds a window to a list if its an alt-tab window.
  * @param list: List to add to
  * @param hwnd: Window handle to check
  */
-void addWindowToVisibleAltTabList(std::vector<WindowInfo>& list, HWND hwnd);
+void addWindowToAltTabList(std::vector<std::shared_ptr<WindowInfo>>& list, HWND hwnd);
 
 
 /**
@@ -77,7 +69,7 @@ void addWindowToVisibleAltTabList(std::vector<WindowInfo>& list, HWND hwnd);
  * @param list: List to remove from
  * @param hwnd: Handle of the window to remove
  */
-void removeWindowFromWindowInfoList(std::vector<WindowInfo>& list, const HWND hwnd);
+void removeWindowFromWindowInfoList(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd);
 
 
 /**
@@ -86,7 +78,7 @@ void removeWindowFromWindowInfoList(std::vector<WindowInfo>& list, const HWND hw
  * @param new_title: New title
  * @returns bool: True/False of success
  */
-bool updateWindowInfoListItem(std::vector<WindowInfo>& list, const HWND hwnd);
+bool updateWindowInfoListItem(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd);
 
 
 /**
@@ -101,9 +93,9 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM l_param);
 /**
  * @brief Gets all the alt-tab visible windows currently active on your computer
  * NOTE: Should probably only use on startup due to performance worries.
- * @returns std::vector<WindowInfo>: Info about the windows
+ * @returns std::vector<std::shared_ptr<WindowInfo>>: Info about the windows
  */
-std::vector<WindowInfo> getAllAltTabWindows();
+std::vector<std::shared_ptr<WindowInfo>> getAllAltTabWindows();
 
 
 /**
@@ -243,6 +235,28 @@ class DwmThumbnail {
  * @param tex: Texture to write into
  */
 void buildWindowTextureFromHwnd(HWND hwnd, ID3D11Device* pd3d_device, const int width, const int height, ID3D11ShaderResourceView*& tex);
+
+
+// ------------------ Structs ------------------
+
+
+/**
+ * @brief Holds basic information for a Windows window
+ */
+struct WindowInfo {
+  WindowInfo() = default;
+  WindowInfo(HWND h) : hwnd(h), tex(nullptr) {
+    title = getWindowTitle(hwnd);
+  }
+  ~WindowInfo() {
+    tex->Release();
+  }
+
+  HWND hwnd;
+  std::string title;
+  ID3D11ShaderResourceView* tex;
+};
+
 
 #endif // WIN_UTILS_HPP
 

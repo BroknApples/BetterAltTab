@@ -6,6 +6,9 @@
 #endif // NOMINMAX
 
 #include <cstdio>
+#include <vector>
+#include <array>
+#include <memory>
 #include <algorithm>
 #include <windows.h>
 
@@ -13,6 +16,39 @@
 
 #include "config.hpp"
 #include "timers.hpp"
+#include "win_utils.hpp"
+
+
+// Types
+using TabGroupWindows =
+  std::vector<
+    std::pair<
+      std::string,
+      std::vector<std::shared_ptr<WindowInfo>>
+    >
+  >;
+using TabGroupLayout =
+  std::vector<
+    std::pair<
+      std::string,
+      WindowItemLayout
+    >
+  >;
+using HotkeyWindows = 
+  std::array<
+    std::shared_ptr<WindowInfo>,
+    10
+  >;
+using HotkeyLayout = WindowItemLayout;
+
+
+/**
+ * @brief Layout used to define the style of rendering a tab group should render with.
+ */
+enum WindowItemLayout {
+  GRID,
+  VERTICAL_LIST
+};
 
 
 /**
@@ -39,6 +75,14 @@ class ImGuiUI {
     static double _fps_display_accumulator;
     static bool _hotkey_layout_horizontal; // True = horizontal, False = Vertical
 
+
+    // Render funcs
+
+    static void _renderWindowItem(const WindowItemLayout layout);
+    static void _renderTabGroupsUI(const TabGroupWindows& tab_groups, const TabGroupLayout& tab_group_layout);
+    static void _renderHotkeyUI(const HotkeyWindows& hotkeys, const HotkeyLayout hotkey_layout);
+    static void _renderSettingsUI(const double fps, const double delta);
+
   public:
     /**
      * @brief Enforce Static-Only class
@@ -54,8 +98,17 @@ class ImGuiUI {
 
     /**
      * @brief Draws all UI elements that should be drawn (must be visible)
+     * @param tab_groups: Tab groups to render
+     * @param tab_group_layout: Layout to render the tab groups with
+     * @param hotkeys: Hotkey windows
+     * @param hotkey_layout: Layout to render the hotkeys with
      */
-    static void drawUI(const double fps, const double delta);
+    static void drawUI(const double fps, const double delta,
+      const std::vector<std::pair<std::string, std::vector<std::shared_ptr<WindowInfo>>>>& tab_groups,
+      const std::vector<std::pair<std::string, WindowItemLayout>> tab_group_layout,
+      const std::array<std::shared_ptr<WindowInfo>, 10>& hotkeys,
+      const WindowItemLayout hotkey_layout
+    );
 
 
     // Inline funcs
@@ -66,13 +119,6 @@ class ImGuiUI {
     static const bool isHotkeyPanelVisible() { return _hotkey_panel_visible; }
     static void setSettingsPanelVisibility(const bool v) { _settings_panel_visible = v; }
     static const bool isSettingsPanelVisible() { return _settings_panel_visible; }
-
-
-    // Render funcs
-
-    static void _renderTabGroupsUI();
-    static void _renderHotkeyUI();
-    static void _renderSettingsUI(const double fps, const double delta);
 };
 
 

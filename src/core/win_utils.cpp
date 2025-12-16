@@ -58,20 +58,19 @@ bool isAltTabWindow(HWND hwnd) {
 }
 
 
-void addWindowToVisibleAltTabList(std::vector<WindowInfo>& list, HWND hwnd) {
-  if (isAltTabWindow(hwnd) && std::none_of(list.begin(), list.end(), [hwnd](const WindowInfo& w) {
-      return w.hwnd == hwnd;
-    })) {
+void addWindowToAltTabList(std::vector<std::shared_ptr<WindowInfo>>& list, HWND hwnd) {
+  if (isAltTabWindow(hwnd) && (std::none_of(list.begin(), list.end(), [hwnd](const std::shared_ptr<WindowInfo>& w) {
+      return w->hwnd == hwnd;
+    }))) {
     
-    std::string title = getWindowTitle(hwnd);
-    list.emplace_back(hwnd, title);
+    list.emplace_back(std::make_shared<WindowInfo>(hwnd));
   }
 }
 
 
-void removeWindowFromWindowInfoList(std::vector<WindowInfo>& list, const HWND hwnd) {
-  auto it = std::find_if(list.begin(), list.end(), [hwnd](const WindowInfo& w){
-    return w.hwnd == hwnd; // check if hwnd matches
+void removeWindowFromWindowInfoList(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd) {
+  auto it = std::find_if(list.begin(), list.end(), [hwnd](const std::shared_ptr<WindowInfo>& w){
+    return w->hwnd == hwnd; // check if hwnd matches
   });
   
   if (it != list.end()) {
@@ -80,15 +79,14 @@ void removeWindowFromWindowInfoList(std::vector<WindowInfo>& list, const HWND hw
 }
 
 
-bool updateWindowInfoListItem(std::vector<WindowInfo>& list, const HWND hwnd) {
-  auto it = std::find_if(list.begin(), list.end(), [hwnd](const WindowInfo& w){
-    return w.hwnd == hwnd; // check if hwnd matches
+bool updateWindowInfoListItem(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd) {
+  auto it = std::find_if(list.begin(), list.end(), [hwnd](const std::shared_ptr<WindowInfo>& w){
+    return w->hwnd == hwnd; // check if hwnd matches
   });
   
   if (it != list.end()) {
-    WindowInfo& w = *it;
-    std::string new_title = getWindowTitle(hwnd);
-    w.title = new_title;
+    std::shared_ptr<WindowInfo> w = *it;
+    w->title = getWindowTitle(hwnd);
     return true;
   }
   
@@ -98,18 +96,18 @@ bool updateWindowInfoListItem(std::vector<WindowInfo>& list, const HWND hwnd) {
 
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM l_param) {
-  auto* list = reinterpret_cast<std::vector<WindowInfo>*>(l_param);
+  auto* list = reinterpret_cast<std::vector<std::shared_ptr<WindowInfo>>*>(l_param);
 
   if (list) {
-    addWindowToVisibleAltTabList(*list, hwnd);
+    addWindowToAltTabList(*list, hwnd);
   }
 
   return TRUE;
 }
 
 
-std::vector<WindowInfo> getAllAltTabWindows() {
-  std::vector<WindowInfo> results;
+std::vector<std::shared_ptr<WindowInfo>> getAllAltTabWindows() {
+  std::vector<std::shared_ptr<WindowInfo>> results;
   EnumWindows(EnumWindowsProc, (LPARAM)&results);
   return results;
 }

@@ -19,9 +19,13 @@ HWINEVENTHOOK  Application::_hook = nullptr;
 
 // ---------------- Misc variables ----------------
 
-bool                    Application::_overlay_visible = false;
-std::vector<WindowInfo> Application::_open_windows = {};
-FpsTimer                Application::_fps_timer;
+bool                                     Application::_overlay_visible = false;
+FpsTimer                                 Application::_fps_timer{};
+std::vector<std::shared_ptr<WindowInfo>> Application::_open_windows{};
+TabGroupWindows                          Application::_tab_groups{};
+HotkeyWindows                            Application::_hotkey_windows{};
+TabGroupLayout                           Application::_tab_group_layouts = {};
+HotkeyLayout                             Application::_hotkey_layout = WindowItemLayout::GRID;
 
 
 // ---------------- DirectX functions ----------------
@@ -241,7 +245,7 @@ void CALLBACK Application::_WinEventProc(HWINEVENTHOOK hook, DWORD event, HWND h
 
     case EVENT_OBJECT_CREATE:
       // Add to list
-      addWindowToVisibleAltTabList(_open_windows, hwnd);
+      addWindowToAltTabList(_open_windows, hwnd);
       //p("CREATE");
       break;
 
@@ -383,10 +387,15 @@ void Application::runApplication() {
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    for (const auto& w : _open_windows) {
+      std::cout << w->title << "\n";
+    }
+    std::cout << std::endl;
+
     // Draw UI
     _fps_timer.update();
     if (_overlay_visible) {
-      ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta());
+      ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta(), _tab_groups, _tab_group_layouts, _hotkey_windows, _hotkey_layout);
     }
     
     ImGui::Render();

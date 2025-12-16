@@ -7,14 +7,16 @@
 #endif // NOMINMAX
 
 
-#include <windows.h>
-#include <shellapi.h>
-#include <d3d11.h>
-#include <tchar.h>
-#include <string>
-#include <memory>
 #include <iostream>
 #include <iomanip>
+#include <string>
+#include <vector>
+#include <array>
+#include <memory>
+#include <tchar.h>
+#include <d3d11.h>
+#include <windows.h>
+#include <shellapi.h>
 
 #include "imgui.h"
 #include "backends/imgui_impl_win32.h"
@@ -25,6 +27,29 @@
 #include "win_utils.hpp"
 #include "resources.h"
 #include "timers.hpp"
+
+
+// Types
+using TabGroupWindows =
+  std::vector<
+    std::pair<
+      std::string,
+      std::vector<std::shared_ptr<WindowInfo>>
+    >
+  >;
+using TabGroupLayout =
+  std::vector<
+    std::pair<
+      std::string,
+      WindowItemLayout
+    >
+  >;
+using HotkeyWindows = 
+  std::array<
+    std::shared_ptr<WindowInfo>,
+    10
+  >;
+using HotkeyLayout = WindowItemLayout;
 
 
 // Setup ImGUI WndProc
@@ -70,8 +95,12 @@ class Application {
 
     // ---------------- Misc variables ----------------
     static bool _overlay_visible;
-    static std::vector<WindowInfo> _open_windows;
     static FpsTimer _fps_timer;
+    static std::vector<std::shared_ptr<WindowInfo>> _open_windows; // Vars shared with hotkey windows
+    static TabGroupWindows _tab_groups; // { {Name of Tab Group : {Items}} , {Name of Tab Group : {Items}} , ... }
+    static HotkeyWindows _hotkey_windows; // Vars shared with open windows
+    static TabGroupLayout _tab_group_layouts;
+    static HotkeyLayout _hotkey_layout;
 
 
     // ---------------- Functions  ----------------
