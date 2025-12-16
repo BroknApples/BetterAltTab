@@ -156,13 +156,12 @@ void ImGuiRightAlignedText(const char* fmt, ...) {
 // -------------------------------- UI Rendering --------------------------------
 
 
-void ImGuiUI::_renderTabGroupsUI(const std::vector<std::pair<std::string, std::vector<std::shared_ptr<WindowInfo>>>>& tab_groups,
-  const std::vector<std::pair<std::string, WindowItemLayout>> tab_group_layout) {
+void ImGuiUI::_renderTabGroupsUI(const TabGroupWindows& tab_groups, const TabGroupLayout& tab_group_layout) {
   
 }
 
 
-void ImGuiUI::_renderHotkeyUI(const std::array<std::shared_ptr<WindowInfo>, 10>& hotkeys, const WindowItemLayout hotkey_layout) {
+void ImGuiUI::_renderHotkeyUI(const HotkeyWindows& hotkeys, const HotkeyLayout hotkey_layout) {
   static constexpr ImGuiWindowFlags HOTKEY_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove;
 
   if (_hotkey_layout_horizontal) { // horizontal Layout
