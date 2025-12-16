@@ -104,10 +104,10 @@ class ImGuiUI {
      * @param hotkey_layout: Layout to render the hotkeys with
      */
     static void drawUI(const double fps, const double delta,
-      const std::vector<std::pair<std::string, std::vector<std::shared_ptr<WindowInfo>>>>& tab_groups,
-      const std::vector<std::pair<std::string, WindowItemLayout>> tab_group_layout,
-      const std::array<std::shared_ptr<WindowInfo>, 10>& hotkeys,
-      const WindowItemLayout hotkey_layout
+      const TabGroupWindows& tab_groups,
+      const TabGroupLayout& tab_group_layout,
+      const HotkeyWindows& hotkeys,
+      const HotkeyLayout hotkey_layout
     );
 
 

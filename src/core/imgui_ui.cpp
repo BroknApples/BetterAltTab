@@ -119,10 +119,10 @@ void ImGuiUI::_setupImGuiStyles() {
 // -------------------------------- Draw UI --------------------------------
 
 void ImGuiUI::drawUI(const double fps, const double delta,
-    const std::vector<std::pair<std::string, std::vector<std::shared_ptr<WindowInfo>>>>& tab_groups,
-    const std::vector<std::pair<std::string, WindowItemLayout>> tab_group_layout,
-    const std::array<std::shared_ptr<WindowInfo>, 10>& hotkeys,
-    const WindowItemLayout hotkey_layout) {
+    const TabGroupWindows& tab_groups,
+    const TabGroupLayout& tab_group_layout,
+    const HotkeyWindows& hotkeys,
+    const HotkeyLayout hotkey_layout) {
   if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layout); }
   if (_hotkey_panel_visible)    { _renderHotkeyUI(hotkeys, hotkey_layout); }
   if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
