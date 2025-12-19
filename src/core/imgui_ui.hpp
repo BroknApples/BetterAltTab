@@ -28,6 +28,15 @@ enum TabGroupLayout {
 };
 
 
+/**
+ * @brief Predefined tab groups that will ALWAYS exist
+ */
+struct StaticTabGroups {
+  static inline const std::string OPEN_TABS = "Open Tabs"; // Special instance of a tab group
+  static inline const std::string HOTKEYS = "Hotkeys"; // Special instance of a tab group
+};
+
+
 // Types
 using TabGroup = std::vector<std::shared_ptr<WindowInfo>>;
 using TabGroupMap =
@@ -57,7 +66,6 @@ class ImGuiUI {
     static constexpr ImVec2 _TOP_LEFT_CORNER_POS = ImVec2(0.0f, 0.0f);
     static constexpr ImVec2 _TOP_RIGHT_CORNER_POS = ImVec2(1.0f, 0.0f);
     static constexpr ImVec2 _BOTTOM_RIGHT_CORNER_POS = ImVec2(1.0f, 1.0f);
-    static inline const std::string _HOTKEY_TAB_GROUP = "Hotkey TabGroup"; // Special instance of a tab group
 
     // vars
     static bool _tab_groups_visible;
@@ -77,6 +85,7 @@ class ImGuiUI {
      */
     void _ImGuiRightAlignedText(const char* fmt, ...);
 
+
     /**
      * @brief Renders a tab group with the proper layout
      * @param title: Title to give the tab group
@@ -85,16 +94,36 @@ class ImGuiUI {
      */
     static void _renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout);
 
-    /**
-     * @brief Renders a tab from a tab group
-     * @param layout: Layout to render with
-     * @param info: Window info to draw
-     */
-    static void _renderTabItem(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout);
 
-    // Render funcs
+    /**
+     * @brief Renders a tab's cell in a tab group
+     * @param info: Window info to draw
+     * @param layout: Layout to render with
+     */
+    static void _renderTabCell(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout);
+
+
+    /**
+     * @brief Render each tab group on the screen
+     * @param tab_groups: Map of tab groups to render
+     * @param tab_group_layouts: Map of the layout for each tab group
+     */
     static void _renderTabGroupsUI(const TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts);
+
+
+    /**
+     * @brief Render the hotkey UI onto the screen
+     * @param hotkeys: Hotkey windows to render
+     * @param hotkey_layout: Layout to render with
+     */
     static void _renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotkey_layout);
+
+
+    /**
+     * @brief Render the settings panel UI onto the screen
+     * @param fps: FPS of the app
+     * @param delta: Time since last frame
+     */
     static void _renderSettingsUI(const double fps, const double delta);
 
   public:

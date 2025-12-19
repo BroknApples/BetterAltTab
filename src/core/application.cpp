@@ -236,31 +236,31 @@ void CALLBACK Application::_WinEventProc(HWINEVENTHOOK hook, DWORD event, HWND h
   switch (event) {
     case EVENT_OBJECT_NAMECHANGE:
       // Change title
-      updateWindowInfoListItem(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
+      updateWindowInfoListItem(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
       //p("NAMECHANGE");
       break;
 
     case EVENT_OBJECT_CREATE:
       // Add to list
-      addWindowToAltTabList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
+      addWindowToAltTabList(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
       //p("CREATE");
       break;
 
     case EVENT_OBJECT_DESTROY:
       // Remove from list
-      removeWindowFromWindowInfoList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
+      removeWindowFromWindowInfoList(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
       //p("DESTROY");
       break;
 
     // case EVENT_OBJECT_SHOW:
     //   // Add to list
-    //   addWindowToVisibleAltTabList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
+    //   addWindowToVisibleAltTabList(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
     //   p("SHOW");
     //   break;
 
     // case EVENT_OBJECT_HIDE:
     //   // Remove from list
-    //   removeWindowFromWindowInfoList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
+    //   removeWindowFromWindowInfoList(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
     //   p("HIDE");
     //   break;
   }
@@ -277,11 +277,23 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   // Config MUST be intialized
   if (!Config::initialized) return false;
 
+  // -------------------------------------------------
+  // ---------------- Windows.h setup ----------------
+  // -------------------------------------------------
+
+  // ------ Check icon ------
+
+  // Check if resource is valid
+  HRSRC res = FindResource(h_instance, MAKEINTRESOURCE(IDI_BETTER_ALT_TAB_ICON), RT_GROUP_ICON);
+  if (res == NULL) {
+    MessageBoxA(NULL, "ICON RESOURCE NOT FOUND!", "ERROR", MB_OK);
+  }
+
   // Load Icon
   _h_icon = LoadIcon(h_instance, MAKEINTRESOURCE(IDI_BETTER_ALT_TAB_ICON));
 
 
-  // Create handle
+  // ------ Create window class ------
   _wc = {sizeof(WNDCLASSEX), CS_CLASSDC, _WndProc, 0, 0,
     h_instance,
     _h_icon, // big icon
@@ -292,11 +304,8 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   };
   RegisterClassEx(&_wc);
 
-  HRSRC res = FindResource(h_instance, MAKEINTRESOURCE(IDI_BETTER_ALT_TAB_ICON), RT_GROUP_ICON);
-  if (res == NULL) {
-    MessageBoxA(NULL, "ICON RESOURCE NOT FOUND!", "ERROR", MB_OK);
-  }
 
+  // ------ Create Window Handle ------
   _hwnd = CreateWindowEx(
     WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW,
     _wc.lpszClassName, _T_WINDOW_NAME,
@@ -307,13 +316,14 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   );
 
 
-  // Windows event callback binding
+  // ------ Windows event callback binding ------
+
   _hook = SetWinEventHook(
-    EVENT_MIN, EVENT_MAX,   // receive all events (restricted in callback)
+    EVENT_MIN, EVENT_MAX,
     NULL, 
     _WinEventProc,
-    0, 0,                   // all processes/threads
-    WINEVENT_OUTOFCONTEXT   // non-invasive, async
+    0, 0,                   //  --> all processes/threads
+    WINEVENT_OUTOFCONTEXT
   );
 
   // Error when setting the hook
@@ -322,12 +332,15 @@ bool Application::createApplication(HINSTANCE& h_instance) {
     return false;
   }
 
-  // Gather all windows on startup
-  _tab_groups[_OPEN_TABS_TAB_GROUP] = getAllAltTabWindows();
-
-
   SetLayeredWindowAttributes(_hwnd, RGB(0,0,0), 0, LWA_COLORKEY);
   ShowWindow(_hwnd, SW_SHOW);
+
+  // Add tray icon
+  _addTrayIcon();
+
+  // -------------------------------------------------
+  // ----------------- DirectX setup -----------------
+  // -------------------------------------------------
 
   if (!_createDeviceD3D(_hwnd)) {
     _cleanupDeviceD3D();
@@ -335,10 +348,11 @@ bool Application::createApplication(HINSTANCE& h_instance) {
     return false;
   }
 
-  // Add tray icon
-  _addTrayIcon();
 
-  // ---------------- ImGui setup ----------------
+  // -------------------------------------------------
+  // ------------------ ImGui setup ------------------
+  // -------------------------------------------------
+
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO();
@@ -348,8 +362,21 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   ImGui_ImplWin32_Init(_hwnd);
   ImGui_ImplDX11_Init(_pd3d_device, _pd3d_device_context);
 
-  // Setup widget layers
+
+  // -------------------------------------------------
+  // ------------------ Misc setup -------------------
+  // -------------------------------------------------
+  
+  // Tab groups
+  _tab_groups[StaticTabGroups::OPEN_TABS] = getAllAltTabWindows();
+  _tab_group_layouts[StaticTabGroups::OPEN_TABS] = TabGroupLayout::GRID;
+  _tab_groups[StaticTabGroups::HOTKEYS] = {};
+  _tab_group_layouts[StaticTabGroups::HOTKEYS] = TabGroupLayout::GRID;
+  // TODO: Render tab groups from config.json
+
+  // ImGui Widgets
   ImGuiUI::_setupImGuiStyles();
+
   return true;
 }
 
@@ -357,9 +384,12 @@ bool Application::createApplication(HINSTANCE& h_instance) {
 void Application::runApplication() {
   MSG msg = {};
   while (msg.message != WM_QUIT) {
-    // ---------------- Toggle overlay with INSERT ----------------
+    // ------------------------ Events ------------------------
+
+    // Check inputs
     _checkInputs();
     
+    // Poll messages
     if (_overlay_visible) {
       // (POLLING): Process all waiting messages, but don't block.
       if (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) { 
@@ -375,32 +405,31 @@ void Application::runApplication() {
         DispatchMessage(&msg);
       }
       else {
-        continue; // GetMessage returns 0 on WM_QUIT
+        continue; // GetMessage() returns 0 on WM_QUIT
       }
     }
 
+
     // ------------------------ Render ------------------------
+
+    // Pre-frame setup
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    for (const auto& w : _tab_groups[_OPEN_TABS_TAB_GROUP]) {
-      std::cout << w->title << "\n";
-    }
-    std::cout << std::endl;
-
-    // Draw UI
+    // Draw UI onto buffer
     _fps_timer.update();
     if (_overlay_visible) {
       ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta(), _tab_groups, _tab_group_layouts);
     }
     
+    // Render onto screen
     ImGui::Render();
     float clear[4] = {0,0,0,0};
     _pd3d_device_context->OMSetRenderTargets(1, &_main_render_target_view, nullptr);
     _pd3d_device_context->ClearRenderTargetView(_main_render_target_view, clear);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    _p_swap_chain->Present(Config::vsync,0);
+    _p_swap_chain->Present(Config::vsync, 0);
   }
 }
 

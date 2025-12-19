@@ -122,7 +122,7 @@ void ImGuiUI::drawUI(const double fps, const double delta,
     const TabGroupMap& tab_groups,
     const TabGroupLayoutList& tab_group_layouts) {
   if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layouts); }
-  if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(_HOTKEY_TAB_GROUP), tab_group_layouts.at(_HOTKEY_TAB_GROUP)); }
+  if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(StaticTabGroups::HOTKEYS), tab_group_layouts.at(StaticTabGroups::HOTKEYS)); }
   if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
 }
 
@@ -148,13 +148,30 @@ void ImGuiUI::_ImGuiRightAlignedText(const char* fmt, ...) {
 
 
 void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout) {
-  for (const auto& tab : tabs) {
-    _renderTabItem(tab, layout);
+  // Constants
+  static constexpr ImGuiTableFlags TABLE_FLAGS = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoPadOuterX;
+  static constexpr float CELL_SIZE = 96.0f;
+  const float PADDING = ImGui::GetStyle().ItemSpacing.x;
+  const float AVAIL = ImGui::GetContentRegionAvail().x;
+  const int COLUMNS = std::max(static_cast<int>(AVAIL / (CELL_SIZE + PADDING)), 1); // Must have AT LEAST 1 column
+  const std::string TABLE_NAME = std::string(title + " - Tab Grid");
+
+  // Draw table
+  if (ImGui::BeginTable(TABLE_NAME.c_str(), COLUMNS, TABLE_FLAGS)) {
+    for (const auto& tab : tabs) {
+      ImGui::TableNextColumn();
+
+      // Render cell
+      ImGui::BeginGroup();
+      _renderTabCell(tab, layout);
+      ImGui::EndGroup();
+    }
+    ImGui::EndTable();
   }
 }
 
 
-void ImGuiUI::_renderTabItem(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout) {
+void ImGuiUI::_renderTabCell(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout) {
   // Total size: image + text
   // ImVec2 text_size = ImGui::CalcTextSize(text);
   // ImVec2 total_size = ImVec2(std::max(image_size.x, text_size.x), image_size.y + text_size.y + 4);
@@ -171,7 +188,6 @@ void ImGuiUI::_renderTabItem(const std::shared_ptr<WindowInfo> info, const TabGr
   // // Draw image below the text
   // ImGui::SetCursorScreenPos(ImVec2(pos.x + (total_size.x - image_size.x)/2, pos.y + text_size.y + 4));
   // ImGui::Image(texture, image_size);
-
 }
 
 
@@ -179,11 +195,16 @@ void ImGuiUI::_renderTabItem(const std::shared_ptr<WindowInfo> info, const TabGr
 
 
 void ImGuiUI::_renderTabGroupsUI(const TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
+  static constexpr ImGuiWindowFlags WINDOW_FLAGS = ImGuiCond_None;
+  
   for (const auto& [title, tabs] : tab_groups) {
-    const TabGroupLayout layout = tab_group_layouts.at(title);
-    
-    if (ImGui::Begin(title.c_str())) {
-      _renderTabGroup(title, tabs, layout);
+    // Skip hotkeys, this group has it's own special rendering function
+    if (title == StaticTabGroups::HOTKEYS) continue;
+
+    // Create window
+    const TabGroupLayout LAYOUT = tab_group_layouts.at(title);
+    if (ImGui::Begin(title.c_str(), nullptr, WINDOW_FLAGS)) {
+      _renderTabGroup(title, tabs, LAYOUT);
     }
     ImGui::End();
   }
@@ -195,7 +216,7 @@ void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotk
 
   if (_hotkey_layout_horizontal) { // horizontal Layout
     // Bottom-left corner placement
-    ImVec2 size(
+    const ImVec2 size(
       Config::monitor_size.x * _HOTKEY_PANEL_LENGTH_PERCENT / 100.0f,
       Config::monitor_size.x * _HOTKEY_PANEL_HEIGHT_PERCENT / 100.0f
     );
@@ -214,7 +235,7 @@ void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotk
   }
   else { // Vertical layout
     // Bottom-left corner placement
-    ImVec2 size(
+    const ImVec2 size(
       Config::monitor_size.x * _HOTKEY_PANEL_HEIGHT_PERCENT / 100.0f,
       Config::monitor_size.x * _HOTKEY_PANEL_LENGTH_PERCENT / 100.0f
     );

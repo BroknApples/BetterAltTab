@@ -49,9 +49,6 @@ class Application {
     static constexpr auto _T_WINDOW_NAME = TEXT("Overlay"); // Name of the window (TEXT version).
     static constexpr const char* _WINDOW_NAME = "Overlay"; // Name of the window.
     static constexpr const char* _SYSTEM_TRAY_NAME = "BetterAltTab Overlay"; // Name shown in the system tray.
-    static inline const std::string _OPEN_TABS_TAB_GROUP = "Open Tabs"; // Special instance of a tab group
-    static inline const std::string _HOTKEY_TAB_GROUP = "Hotkeys"; // Special instance of a tab group
-
 
     // ---------------- DirectX variables ----------------
     static ID3D11Device*           _pd3d_device;
