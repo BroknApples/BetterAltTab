@@ -13,120 +13,6 @@ bool ImGuiUI::_hotkey_layout_horizontal = false;
 
 // ----------------- Private Functions -----------------
 
-void ImGuiUI::_setupImGuiStyles() {
-  ImGuiStyle& style = ImGui::GetStyle();
-
-  // Text
-  style.Colors[ImGuiCol_Text]            = ImVec4(0.95f, 0.95f, 0.95f, 1.00f);
-  style.Colors[ImGuiCol_TextDisabled]    = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
-  style.Colors[ImGuiCol_TextLink]        = ImVec4(0.40f, 0.65f, 1.00f, 1.00f);
-  style.Colors[ImGuiCol_TextSelectedBg]  = ImVec4(0.26f, 0.52f, 0.96f, 0.35f);
-
-
-  // Windows / Backgrounds
-  style.Colors[ImGuiCol_WindowBg]         = ImVec4(0.10f, 0.10f, 0.10f, 0.95f);
-  style.Colors[ImGuiCol_ChildBg]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-  style.Colors[ImGuiCol_PopupBg]          = ImVec4(0.12f, 0.12f, 0.12f, 0.95f);
-  style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.55f);
-
-
-  // Borders & Separators
-  style.Colors[ImGuiCol_Border]           = ImVec4(0.25f, 0.25f, 0.25f, 0.50f);
-  style.Colors[ImGuiCol_BorderShadow]     = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-
-  style.Colors[ImGuiCol_Separator]        = ImVec4(0.30f, 0.30f, 0.30f, 0.50f);
-  style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.45f, 0.45f, 0.45f, 0.75f);
-  style.Colors[ImGuiCol_SeparatorActive]  = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
-
-
-  // Frames (Inputs, Sliders, Checkboxes)
-  style.Colors[ImGuiCol_FrameBg]          = ImVec4(0.20f, 0.20f, 0.20f, 0.60f);
-  style.Colors[ImGuiCol_FrameBgHovered]   = ImVec4(0.30f, 0.30f, 0.30f, 0.70f);
-  style.Colors[ImGuiCol_FrameBgActive]    = ImVec4(0.35f, 0.35f, 0.35f, 0.80f);
-
-  style.Colors[ImGuiCol_CheckMark]        = ImVec4(0.85f, 0.85f, 0.85f, 1.00f);
-  style.Colors[ImGuiCol_InputTextCursor]  = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-
-
-  // Sliders
-  style.Colors[ImGuiCol_SliderGrab]        = ImVec4(0.40f, 0.40f, 0.40f, 0.70f);
-  style.Colors[ImGuiCol_SliderGrabActive]  = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
-
-
-  // Buttons
-  style.Colors[ImGuiCol_Button]            = ImVec4(0.20f, 0.20f, 0.20f, 0.60f);
-  style.Colors[ImGuiCol_ButtonHovered]     = ImVec4(0.30f, 0.30f, 0.30f, 0.80f);
-  style.Colors[ImGuiCol_ButtonActive]      = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
-
-
-  // Headers (CollapsingHeader, TreeNode, Selectable)
-  style.Colors[ImGuiCol_Header]            = ImVec4(0.20f, 0.20f, 0.20f, 0.50f);
-  style.Colors[ImGuiCol_HeaderHovered]     = ImVec4(0.30f, 0.30f, 0.30f, 0.70f);
-  style.Colors[ImGuiCol_HeaderActive]      = ImVec4(0.35f, 0.35f, 0.35f, 0.90f);
-
-
-  // Title Bar / Menu Bar
-  style.Colors[ImGuiCol_TitleBg]            = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-  style.Colors[ImGuiCol_TitleBgActive]      = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
-  style.Colors[ImGuiCol_TitleBgCollapsed]   = ImVec4(0.10f, 0.10f, 0.10f, 0.50f);
-
-  style.Colors[ImGuiCol_MenuBarBg]          = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-
-
-  // Tabs
-  style.Colors[ImGuiCol_Tab]                         = ImVec4(0.15f, 0.15f, 0.15f, 0.80f);
-  style.Colors[ImGuiCol_TabHovered]                  = ImVec4(0.30f, 0.30f, 0.30f, 0.90f);
-
-  style.Colors[ImGuiCol_TabSelected]                 = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-  style.Colors[ImGuiCol_TabSelectedOverline]         = ImVec4(0.40f, 0.60f, 0.90f, 1.00f);
-
-  style.Colors[ImGuiCol_TabDimmed]                   = ImVec4(0.10f, 0.10f, 0.10f, 0.80f);
-  style.Colors[ImGuiCol_TabDimmedSelected]           = ImVec4(0.15f, 0.15f, 0.15f, 0.90f);
-  style.Colors[ImGuiCol_TabDimmedSelectedOverline]   = ImVec4(0.40f, 0.60f, 0.90f, 0.80f);
-
-
-  // Plots
-  style.Colors[ImGuiCol_PlotLines]             = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
-  style.Colors[ImGuiCol_PlotLinesHovered]      = ImVec4(1.00f, 0.50f, 0.50f, 1.00f);
-  style.Colors[ImGuiCol_PlotHistogram]         = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-  style.Colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-
-
-  // Tables
-  style.Colors[ImGuiCol_TableHeaderBg]       = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-  style.Colors[ImGuiCol_TableBorderStrong]   = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
-  style.Colors[ImGuiCol_TableBorderLight]    = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-  style.Colors[ImGuiCol_TableRowBg]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-  style.Colors[ImGuiCol_TableRowBgAlt]       = ImVec4(1.00f, 1.00f, 1.00f, 0.03f);
-
-
-  // Trees / Drag & Drop / Markers
-  style.Colors[ImGuiCol_TreeLines]          = ImVec4(0.35f, 0.35f, 0.35f, 0.60f);
-
-  style.Colors[ImGuiCol_DragDropTarget]     = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-  style.Colors[ImGuiCol_DragDropTargetBg]   = ImVec4(1.00f, 1.00f, 0.00f, 0.20f);
-
-  style.Colors[ImGuiCol_UnsavedMarker]      = ImVec4(1.00f, 0.50f, 0.00f, 1.00f);
-
-
-  // Navigation (Keyboard / Gamepad)
-  style.Colors[ImGuiCol_NavCursor]             = ImVec4(0.40f, 0.60f, 0.90f, 1.00f);
-  style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-  style.Colors[ImGuiCol_NavWindowingDimBg]     = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-}
-
-
-// -------------------------------- Draw UI --------------------------------
-
-void ImGuiUI::drawUI(const double fps, const double delta,
-    const TabGroupMap& tab_groups,
-    const TabGroupLayoutList& tab_group_layouts) {
-  if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layouts); }
-  if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(StaticTabGroups::HOTKEYS), tab_group_layouts.at(StaticTabGroups::HOTKEYS)); }
-  if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
-}
-
-
 // -------------------------------- UI Rendering Helpers --------------------------------
 
 
@@ -147,13 +33,53 @@ void ImGuiUI::_ImGuiRightAlignedText(const char* fmt, ...) {
 }
 
 
+std::string ImGuiUI::_fitStringToWidth(const std::string& str, const float max_width, const bool ellipses) {
+  if (str.empty()) return "";
+
+  const int LEN = static_cast<int>(str.size());
+  int left = 0;
+  int right = LEN - 1;
+  int fit = 0;
+
+  // Binary search method
+  while (left <= right) {
+    const int mid = (left + right) / 2;
+    const std::string sub = str.substr(0, mid);
+    const ImVec2 size = ImGui::CalcTextSize(sub.c_str());
+
+    if (size.x <= max_width) {
+      fit = mid;       // this length fits
+      left = mid + 1;  // try longer
+    }
+    else {
+      right = mid - 1; // try shorter
+    }
+  }
+
+  // Build string
+  std::string result = str.substr(0, fit);
+
+  // Add ellipsis if truncated
+  if (ellipses && fit < LEN) {
+    if (fit > 3) {
+      result = str.substr(0, fit - 3) + "...";
+    }
+    else {
+      result = "...";
+    }
+  }
+
+  return result;
+}
+
+
 void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout) {
   // Constants
   static constexpr ImGuiTableFlags TABLE_FLAGS = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoPadOuterX;
-  static constexpr float CELL_SIZE = 96.0f;
+  static constexpr ImVec2 CELL_SIZE = ImVec2(96.0f, 96.0f);
   const float PADDING = ImGui::GetStyle().ItemSpacing.x;
   const float AVAIL = ImGui::GetContentRegionAvail().x;
-  const int COLUMNS = std::max(static_cast<int>(AVAIL / (CELL_SIZE + PADDING)), 1); // Must have AT LEAST 1 column
+  const int COLUMNS = std::max(static_cast<int>(AVAIL / (CELL_SIZE.x + PADDING)), 1); // Must have AT LEAST 1 column
   const std::string TABLE_NAME = std::string(title + " - Tab Grid");
 
   // Draw table
@@ -163,7 +89,7 @@ void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, con
 
       // Render cell
       ImGui::BeginGroup();
-      _renderTabCell(tab, layout);
+      _renderTabCell(title, tab, layout, CELL_SIZE);
       ImGui::EndGroup();
     }
     ImGui::EndTable();
@@ -171,23 +97,27 @@ void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, con
 }
 
 
-void ImGuiUI::_renderTabCell(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout) {
+void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size) {
   // Total size: image + text
-  // ImVec2 text_size = ImGui::CalcTextSize(text);
-  // ImVec2 total_size = ImVec2(std::max(image_size.x, text_size.x), image_size.y + text_size.y + 4);
+  ImGuiStyle& style = ImGui::GetStyle();
+  const float LINE_HEIGHT = ImGui::GetTextLineHeight();
+  const float Y_PADDING = style.FramePadding.y;
+  const ImVec2 TOTAL_SIZE = ImVec2(cell_size.x, cell_size.y + LINE_HEIGHT + Y_PADDING);
 
-  // // Create invisible button for the entire area
-  // if (ImGui::InvisibleButton(text, total_size))
-  //     return true; // clicked
+  // Get text substr
+  const std::string TEXT_SUBSTR = _fitStringToWidth(info->title, cell_size.x, true);
+  
+  // Create invisible button for the entire area
+  if (ImGui::InvisibleButton((info->title + "_" + group_title + "-button").c_str(), TOTAL_SIZE)) {
+    std::cout << "[CLICKED] " << info->title << std::endl;
+    // TODO: On-click
+  }
 
-  // // Draw text
-  // ImVec2 pos = ImGui::GetItemRectMin();
-  // ImGui::SetCursorScreenPos(pos);
-  // ImGui::Text("%s", text);
-
-  // // Draw image below the text
-  // ImGui::SetCursorScreenPos(ImVec2(pos.x + (total_size.x - image_size.x)/2, pos.y + text_size.y + 4));
-  // ImGui::Image(texture, image_size);
+  // Set cursor pos
+  ImVec2 pos = ImGui::GetItemRectMin();
+  ImGui::SetCursorScreenPos(pos);
+  ImGui::Text("%s", TEXT_SUBSTR.c_str());           // Draw text
+  ImGui::Image((ImTextureID)info->tex, cell_size);  // Draw image below the text
 }
 
 
@@ -408,4 +338,120 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
     }
   }
   ImGui::End();
+}
+
+
+// --------------------- Styles ---------------------
+
+void ImGuiUI::setupImGuiStyles() {
+  ImGuiStyle& style = ImGui::GetStyle();
+
+  // Text
+  style.Colors[ImGuiCol_Text]            = ImVec4(0.95f, 0.95f, 0.95f, 1.00f);
+  style.Colors[ImGuiCol_TextDisabled]    = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
+  style.Colors[ImGuiCol_TextLink]        = ImVec4(0.40f, 0.65f, 1.00f, 1.00f);
+  style.Colors[ImGuiCol_TextSelectedBg]  = ImVec4(0.26f, 0.52f, 0.96f, 0.35f);
+
+
+  // Windows / Backgrounds
+  style.Colors[ImGuiCol_WindowBg]         = ImVec4(0.10f, 0.10f, 0.10f, 0.95f);
+  style.Colors[ImGuiCol_ChildBg]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+  style.Colors[ImGuiCol_PopupBg]          = ImVec4(0.12f, 0.12f, 0.12f, 0.95f);
+  style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.55f);
+
+
+  // Borders & Separators
+  style.Colors[ImGuiCol_Border]           = ImVec4(0.25f, 0.25f, 0.25f, 0.50f);
+  style.Colors[ImGuiCol_BorderShadow]     = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+  style.Colors[ImGuiCol_Separator]        = ImVec4(0.30f, 0.30f, 0.30f, 0.50f);
+  style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.45f, 0.45f, 0.45f, 0.75f);
+  style.Colors[ImGuiCol_SeparatorActive]  = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
+
+
+  // Frames (Inputs, Sliders, Checkboxes)
+  style.Colors[ImGuiCol_FrameBg]          = ImVec4(0.20f, 0.20f, 0.20f, 0.60f);
+  style.Colors[ImGuiCol_FrameBgHovered]   = ImVec4(0.30f, 0.30f, 0.30f, 0.70f);
+  style.Colors[ImGuiCol_FrameBgActive]    = ImVec4(0.35f, 0.35f, 0.35f, 0.80f);
+
+  style.Colors[ImGuiCol_CheckMark]        = ImVec4(0.85f, 0.85f, 0.85f, 1.00f);
+  style.Colors[ImGuiCol_InputTextCursor]  = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+
+
+  // Sliders
+  style.Colors[ImGuiCol_SliderGrab]        = ImVec4(0.40f, 0.40f, 0.40f, 0.70f);
+  style.Colors[ImGuiCol_SliderGrabActive]  = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
+
+
+  // Buttons
+  style.Colors[ImGuiCol_Button]            = ImVec4(0.20f, 0.20f, 0.20f, 0.60f);
+  style.Colors[ImGuiCol_ButtonHovered]     = ImVec4(0.30f, 0.30f, 0.30f, 0.80f);
+  style.Colors[ImGuiCol_ButtonActive]      = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+
+
+  // Headers (CollapsingHeader, TreeNode, Selectable)
+  style.Colors[ImGuiCol_Header]            = ImVec4(0.20f, 0.20f, 0.20f, 0.50f);
+  style.Colors[ImGuiCol_HeaderHovered]     = ImVec4(0.30f, 0.30f, 0.30f, 0.70f);
+  style.Colors[ImGuiCol_HeaderActive]      = ImVec4(0.35f, 0.35f, 0.35f, 0.90f);
+
+
+  // Title Bar / Menu Bar
+  style.Colors[ImGuiCol_TitleBg]            = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+  style.Colors[ImGuiCol_TitleBgActive]      = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+  style.Colors[ImGuiCol_TitleBgCollapsed]   = ImVec4(0.10f, 0.10f, 0.10f, 0.50f);
+
+  style.Colors[ImGuiCol_MenuBarBg]          = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+
+
+  // Tabs
+  style.Colors[ImGuiCol_Tab]                         = ImVec4(0.15f, 0.15f, 0.15f, 0.80f);
+  style.Colors[ImGuiCol_TabHovered]                  = ImVec4(0.30f, 0.30f, 0.30f, 0.90f);
+
+  style.Colors[ImGuiCol_TabSelected]                 = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+  style.Colors[ImGuiCol_TabSelectedOverline]         = ImVec4(0.40f, 0.60f, 0.90f, 1.00f);
+
+  style.Colors[ImGuiCol_TabDimmed]                   = ImVec4(0.10f, 0.10f, 0.10f, 0.80f);
+  style.Colors[ImGuiCol_TabDimmedSelected]           = ImVec4(0.15f, 0.15f, 0.15f, 0.90f);
+  style.Colors[ImGuiCol_TabDimmedSelectedOverline]   = ImVec4(0.40f, 0.60f, 0.90f, 0.80f);
+
+
+  // Plots
+  style.Colors[ImGuiCol_PlotLines]             = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+  style.Colors[ImGuiCol_PlotLinesHovered]      = ImVec4(1.00f, 0.50f, 0.50f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogram]         = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+
+
+  // Tables
+  style.Colors[ImGuiCol_TableHeaderBg]       = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+  style.Colors[ImGuiCol_TableBorderStrong]   = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+  style.Colors[ImGuiCol_TableBorderLight]    = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+  style.Colors[ImGuiCol_TableRowBg]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+  style.Colors[ImGuiCol_TableRowBgAlt]       = ImVec4(1.00f, 1.00f, 1.00f, 0.03f);
+
+
+  // Trees / Drag & Drop / Markers
+  style.Colors[ImGuiCol_TreeLines]          = ImVec4(0.35f, 0.35f, 0.35f, 0.60f);
+
+  style.Colors[ImGuiCol_DragDropTarget]     = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+  style.Colors[ImGuiCol_DragDropTargetBg]   = ImVec4(1.00f, 1.00f, 0.00f, 0.20f);
+
+  style.Colors[ImGuiCol_UnsavedMarker]      = ImVec4(1.00f, 0.50f, 0.00f, 1.00f);
+
+
+  // Navigation (Keyboard / Gamepad)
+  style.Colors[ImGuiCol_NavCursor]             = ImVec4(0.40f, 0.60f, 0.90f, 1.00f);
+  style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+  style.Colors[ImGuiCol_NavWindowingDimBg]     = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+}
+
+
+// -------------------------------- Draw UI --------------------------------
+
+void ImGuiUI::drawUI(const double fps, const double delta,
+    const TabGroupMap& tab_groups,
+    const TabGroupLayoutList& tab_group_layouts) {
+  if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layouts); }
+  if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(StaticTabGroups::HOTKEYS), tab_group_layouts.at(StaticTabGroups::HOTKEYS)); }
+  if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
 }

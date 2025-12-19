@@ -148,6 +148,7 @@ class Application {
       PostMessage(_hwnd, WM_NULL, 0, 0);
     }
 
+
     /**
      * @brief Event-handler for the window
      * @param hwnd: Window contetx

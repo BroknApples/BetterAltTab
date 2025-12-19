@@ -75,10 +75,18 @@ void removeWindowFromWindowInfoList(std::vector<std::shared_ptr<WindowInfo>>& li
 /**
  * @brief Sets a new title for a window if it's present in a window info list
  * @param list: List to search
- * @param new_title: New title
+ * @param hwnd: Window handle to update
  * @returns bool: True/False of success
  */
-bool updateWindowInfoListItem(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd);
+bool updateWindowInfoListItemTitle(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd);
+
+
+/**
+ * @brief Updates the stored textures for every WindowInfo object in a list
+ * @param list: List to update
+ * @param pd3d_device: Device used to render with
+ */
+void updateWindowInfoListTextures(std::vector<std::shared_ptr<WindowInfo>>& list, ID3D11Device* pd3d_device);
 
 
 /**
@@ -106,6 +114,11 @@ void focusWindow(HWND hwnd);
 
 
 // --------------------- Window Capturing ---------------------
+
+/**
+ * @brief Gets the dimensions of a DirectX11 texture
+ */
+std::pair<UINT, UINT> getTexture2DDim(ID3D11ShaderResourceView* tex);
 
 
 /**
@@ -136,7 +149,7 @@ ID3D11ShaderResourceView* bitmapToShaderResourceView(HBITMAP h_bmp, ID3D11Device
 
 
 /**
- * @brief Downscales as bitmap to a new size
+ * @brief Scales a bitmap to a new size
  * 
  * NOTE: caller must DeleteObject()
  * @param src_bitmap: Original bitmap
@@ -144,7 +157,7 @@ ID3D11ShaderResourceView* bitmapToShaderResourceView(HBITMAP h_bmp, ID3D11Device
  * @param new_height: New height
  * @returns HBITMAP: Resized bitmap
  */
-HBITMAP downscaleBitmap(HBITMAP src_bitmap, const int new_width, const int new_height);
+HBITMAP scaleBitmap(HBITMAP src_bitmap, const int new_width, const int new_height);
 
 /**
  * @brief Returns a bitmap of a window, regardless of its visibility
@@ -230,11 +243,12 @@ class DwmThumbnail {
  * @brief Captures the image of a window and creates a gpu texture of (width * height) size
  * @param hwnd: Window handle
  * @param pd3d_device: GPU device to render with
- * @param width: Width of the texture
- * @param height: Height of the texture
+ * @param width: Width of the texture (DEFAULT = -1; No scaling)
+ * @param height: Height of the texture (DEFAULT = -1; No scaling)
  * @param tex: Texture to write into
+ * @returns bool: Success?
  */
-void buildWindowTextureFromHwnd(HWND hwnd, ID3D11Device* pd3d_device, const int width, const int height, ID3D11ShaderResourceView*& tex);
+bool buildWindowTextureFromHwnd(const HWND hwnd, ID3D11ShaderResourceView*& tex, ID3D11Device* pd3d_device, const int width = -1, const int height = -1);
 
 
 // ------------------ Structs ------------------

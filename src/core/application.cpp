@@ -142,13 +142,20 @@ void Application::_showTrayMenu() {
     }
     case TrayItems::SHOW_TAB_GROUPS: {
       const bool NOT_VIS = !ImGuiUI::isTabGroupsVisible();
-      if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
+      if (NOT_VIS) {
+        if (!_overlay_visible) _toggleOverlayVisible();
+        updateWindowInfoListTextures(_tab_groups.at(StaticTabGroups::OPEN_TABS), _pd3d_device);
+      }
       ImGuiUI::setTabGroupsVisibility(NOT_VIS);
+
       break;
     }
     case TrayItems::SHOW_HOTKEYS: {
       const bool NOT_VIS = !ImGuiUI::isHotkeyPanelVisible();
-      if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
+      if (NOT_VIS) {
+        if (!_overlay_visible) _toggleOverlayVisible();
+        updateWindowInfoListTextures(_tab_groups.at(StaticTabGroups::HOTKEYS), _pd3d_device);
+      }
       ImGuiUI::setHotkeyPanelVisibility(NOT_VIS);
       break;
     }
@@ -236,7 +243,7 @@ void CALLBACK Application::_WinEventProc(HWINEVENTHOOK hook, DWORD event, HWND h
   switch (event) {
     case EVENT_OBJECT_NAMECHANGE:
       // Change title
-      updateWindowInfoListItem(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
+      updateWindowInfoListItemTitle(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
       //p("NAMECHANGE");
       break;
 
@@ -375,7 +382,7 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   // TODO: Render tab groups from config.json
 
   // ImGui Widgets
-  ImGuiUI::_setupImGuiStyles();
+  ImGuiUI::setupImGuiStyles();
 
   return true;
 }

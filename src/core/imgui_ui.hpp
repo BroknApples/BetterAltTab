@@ -87,6 +87,16 @@ class ImGuiUI {
 
 
     /**
+     * @brief Fits a string to a given width
+     * @param str: String to fit
+     * @param max_width: Maximum width allowed for the string
+     * @param ellipses: Should ellipses be appended to the string if it is truncated?
+     * @returns std::string: New string made to fit the given size
+     */
+    static std::string _fitStringToWidth(const std::string& str, const float max_width, const bool ellipses = false);
+
+
+    /**
      * @brief Renders a tab group with the proper layout
      * @param title: Title to give the tab group
      * @param tabs: Tabs to render
@@ -97,10 +107,12 @@ class ImGuiUI {
 
     /**
      * @brief Renders a tab's cell in a tab group
+     * @param group_title: Title of the tab group its rendering in
      * @param info: Window info to draw
      * @param layout: Layout to render with
+     * @param cell_size: Size of the cell to render
      */
-    static void _renderTabCell(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout);
+    static void _renderTabCell(const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size);
 
 
     /**
@@ -136,7 +148,7 @@ class ImGuiUI {
     /**
      * @brief Setup im gui styles
      */
-    static void _setupImGuiStyles();
+    static void setupImGuiStyles();
 
 
     /**

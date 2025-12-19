@@ -79,7 +79,7 @@ void removeWindowFromWindowInfoList(std::vector<std::shared_ptr<WindowInfo>>& li
 }
 
 
-bool updateWindowInfoListItem(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd) {
+bool updateWindowInfoListItemTitle(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd) {
   auto it = std::find_if(list.begin(), list.end(), [hwnd](const std::shared_ptr<WindowInfo>& w){
     return w->hwnd == hwnd; // check if hwnd matches
   });
@@ -92,6 +92,24 @@ bool updateWindowInfoListItem(std::vector<std::shared_ptr<WindowInfo>>& list, co
   
   // Value not found, so return false.
   return false;
+}
+
+
+void updateWindowInfoListTextures(std::vector<std::shared_ptr<WindowInfo>>& list, ID3D11Device* pd3d_device) {
+  for (const auto& ptr : list) {
+    ID3D11ShaderResourceView* tmp = nullptr;
+    if (!buildWindowTextureFromHwnd(ptr->hwnd, tmp, pd3d_device)) continue;
+
+    // Delete old texture if it exists
+    if (ptr->tex != nullptr) {
+      ptr->tex->Release();
+    }
+
+    // Only set a new texture if its valid
+    if (tmp != nullptr) {
+      ptr->tex = tmp;
+    }
+  }
 }
 
 
@@ -123,6 +141,34 @@ void focusWindow(HWND hwnd) {
 
 
 // --------------------- Window Capturing ---------------------
+
+std::pair<UINT, UINT> getTexture2DDim(ID3D11ShaderResourceView* tex) {
+  if (!tex) return {0, 0};
+
+  // Get the underlying resource
+  ID3D11Resource* resource = nullptr;
+  tex->GetResource(&resource);
+  if (!resource) return {0, 0};
+
+  D3D11_TEXTURE2D_DESC desc;
+  ID3D11Texture2D* tex2D = nullptr;
+
+  // Try to cast to Texture2D
+  std::pair<UINT, UINT> ret;
+  if (SUCCEEDED(resource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&tex2D))) {
+    tex2D->GetDesc(&desc);
+    
+    ret.first  = desc.Width;
+    ret.second = desc.Height;
+
+    // use width & height as needed
+    tex2D->Release();
+  }
+
+  resource->Release();
+  return ret;
+}
+
 
 void bitmapToBGRA(HBITMAP bmp, std::vector<uint8_t>& pixels) {
   int w, h; // Dummy size params
@@ -189,7 +235,7 @@ ID3D11ShaderResourceView* bitmapToShaderResourceView(HBITMAP h_bmp, ID3D11Device
 }
 
 
-HBITMAP downscaleBitmap(HBITMAP src_bitmap, const int new_width, const int new_height) {
+HBITMAP scaleBitmap(HBITMAP src_bitmap, const int new_width, const int new_height) {
   // Get source bitmap info
   BITMAP bmp;
   GetObject(src_bitmap, sizeof(BITMAP), &bmp);
@@ -228,23 +274,48 @@ HBITMAP downscaleBitmap(HBITMAP src_bitmap, const int new_width, const int new_h
 
 
 HBITMAP captureWindow(HWND hwnd) {
-  RECT rc;
-  GetWindowRect(hwnd, &rc);
+  RECT rc{};
+  if (!GetWindowRect(hwnd, &rc)) {
+    return nullptr;
+  }
 
   const int width  = rc.right - rc.left;
   const int height = rc.bottom - rc.top;
 
-  HDC h_dc = GetDC(NULL);
+  if (width <= 0 || height <= 0) {
+    return nullptr;
+  }
+
+  HDC h_dc = GetWindowDC(hwnd);
+  if (h_dc == nullptr) {
+    return nullptr;
+  }
+
   HDC h_mem_dc = CreateCompatibleDC(h_dc);
+  if (h_mem_dc == nullptr) {
+    ReleaseDC(hwnd, h_dc);
+    return nullptr;
+  }
 
   HBITMAP h_bitmap = CreateCompatibleBitmap(h_dc, width, height);
+  if (h_bitmap == nullptr) {
+    DeleteDC(h_mem_dc);
+    ReleaseDC(hwnd, h_dc);
+    return nullptr;
+  }
+
   HBITMAP h_old = (HBITMAP)SelectObject(h_mem_dc, h_bitmap);
 
-  PrintWindow(hwnd, h_mem_dc, PW_RENDERFULLCONTENT);
+  const BOOL OK = PrintWindow(hwnd, h_mem_dc, PW_RENDERFULLCONTENT);
 
   SelectObject(h_mem_dc, h_old);
   DeleteDC(h_mem_dc);
-  ReleaseDC(NULL, h_dc);
+  ReleaseDC(hwnd, h_dc);
+
+  if (!OK) {
+    DeleteObject(h_bitmap);
+    return nullptr;
+  }
 
   return h_bitmap;
 }
@@ -327,15 +398,37 @@ void DwmThumbnail::unregisterThumbnail() {
 
 // ------------------ Premade capturing functions ------------------
 
-void buildWindowTextureFromHwnd(HWND hwnd, ID3D11Device* pd3d_device, const int width, const int height, ID3D11ShaderResourceView*& tex) {
+bool buildWindowTextureFromHwnd(const HWND hwnd, ID3D11ShaderResourceView*& tex, ID3D11Device* pd3d_device, const int width, const int height) {
+  static constexpr int MINIMUM_RESIZE = 128; // Minimum size required for a resize, if its smaller it won't allow it to work
+  static constexpr int MAXIMUM_RESIZE = 8192; // Minimum size required for a resize, if its smaller it won't allow it to work
+
+  // Check if dimension size is valid
+  static auto isValidDimension = [](const int dim) {
+    return dim == -1 || (dim >= MINIMUM_RESIZE && dim <= MAXIMUM_RESIZE);
+  };
+  
+  // Out of bounds
+  if (!isValidDimension(width) || !isValidDimension(height)) {
+    return false;
+  }
+
   // Create bitmaps
   HBITMAP bmp = captureWindow(hwnd);
-  HBITMAP downscaled_bmp = downscaleBitmap(bmp, width, height);
+  if (bmp == nullptr) return false;
 
-  // Build the texture
-  tex = bitmapToShaderResourceView(downscaled_bmp, pd3d_device);
+  if (width != -1 && height != -1) {
+    HBITMAP resized = scaleBitmap(bmp, width, height);
+    if (!resized) {
+      DeleteObject(bmp);
+      return false;
+    }
 
-  // Cleanup GDI bitmaps
+    DeleteObject(bmp);
+    bmp = resized;
+  }
+
+  tex = bitmapToShaderResourceView(bmp, pd3d_device);
   DeleteObject(bmp);
-  DeleteObject(downscaled_bmp);
+
+  return tex != nullptr;
 }
