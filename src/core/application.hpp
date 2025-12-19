@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-#include <array>
+#include <unordered_map>
 #include <memory>
 #include <tchar.h>
 #include <d3d11.h>
@@ -30,26 +30,7 @@
 
 
 // Types
-using TabGroupWindows =
-  std::vector<
-    std::pair<
-      std::string,
-      std::vector<std::shared_ptr<WindowInfo>>
-    >
-  >;
-using TabGroupLayout =
-  std::vector<
-    std::pair<
-      std::string,
-      WindowItemLayout
-    >
-  >;
-using HotkeyWindows = 
-  std::array<
-    std::shared_ptr<WindowInfo>,
-    10
-  >;
-using HotkeyLayout = WindowItemLayout;
+
 
 
 // Setup ImGUI WndProc
@@ -68,6 +49,8 @@ class Application {
     static constexpr auto _T_WINDOW_NAME = TEXT("Overlay"); // Name of the window (TEXT version).
     static constexpr const char* _WINDOW_NAME = "Overlay"; // Name of the window.
     static constexpr const char* _SYSTEM_TRAY_NAME = "BetterAltTab Overlay"; // Name shown in the system tray.
+    static inline const std::string _OPEN_TABS_TAB_GROUP = "Open Tabs"; // Special instance of a tab group
+    static inline const std::string _HOTKEY_TAB_GROUP = "Hotkeys"; // Special instance of a tab group
 
 
     // ---------------- DirectX variables ----------------
@@ -96,11 +79,8 @@ class Application {
     // ---------------- Misc variables ----------------
     static bool _overlay_visible;
     static FpsTimer _fps_timer;
-    static std::vector<std::shared_ptr<WindowInfo>> _open_windows; // Vars shared with hotkey windows
-    static TabGroupWindows _tab_groups; // { {Name of Tab Group : {Items}} , {Name of Tab Group : {Items}} , ... }
-    static HotkeyWindows _hotkey_windows; // Vars shared with open windows
-    static TabGroupLayout _tab_group_layouts;
-    static HotkeyLayout _hotkey_layout;
+    static TabGroupMap _tab_groups; // { {Name of Tab Group : {Items}} , {Name of Tab Group : {Items}} , ... }
+    static TabGroupLayoutList _tab_group_layouts;
 
 
     // ---------------- Functions  ----------------

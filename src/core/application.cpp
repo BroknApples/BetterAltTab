@@ -19,13 +19,10 @@ HWINEVENTHOOK  Application::_hook = nullptr;
 
 // ---------------- Misc variables ----------------
 
-bool                                     Application::_overlay_visible = false;
-FpsTimer                                 Application::_fps_timer{};
-std::vector<std::shared_ptr<WindowInfo>> Application::_open_windows{};
-TabGroupWindows                          Application::_tab_groups{};
-HotkeyWindows                            Application::_hotkey_windows{};
-TabGroupLayout                           Application::_tab_group_layouts = {};
-HotkeyLayout                             Application::_hotkey_layout = WindowItemLayout::GRID;
+bool               Application::_overlay_visible = false;
+FpsTimer           Application::_fps_timer{};
+TabGroupMap        Application::_tab_groups{};
+TabGroupLayoutList Application::_tab_group_layouts{};
 
 
 // ---------------- DirectX functions ----------------
@@ -239,31 +236,31 @@ void CALLBACK Application::_WinEventProc(HWINEVENTHOOK hook, DWORD event, HWND h
   switch (event) {
     case EVENT_OBJECT_NAMECHANGE:
       // Change title
-      updateWindowInfoListItem(_open_windows, hwnd);
+      updateWindowInfoListItem(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
       //p("NAMECHANGE");
       break;
 
     case EVENT_OBJECT_CREATE:
       // Add to list
-      addWindowToAltTabList(_open_windows, hwnd);
+      addWindowToAltTabList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
       //p("CREATE");
       break;
 
     case EVENT_OBJECT_DESTROY:
       // Remove from list
-      removeWindowFromWindowInfoList(_open_windows, hwnd);
+      removeWindowFromWindowInfoList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
       //p("DESTROY");
       break;
 
     // case EVENT_OBJECT_SHOW:
     //   // Add to list
-    //   addWindowToVisibleAltTabList(_open_windows, hwnd);
+    //   addWindowToVisibleAltTabList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
     //   p("SHOW");
     //   break;
 
     // case EVENT_OBJECT_HIDE:
     //   // Remove from list
-    //   removeWindowFromWindowInfoList(_open_windows, hwnd);
+    //   removeWindowFromWindowInfoList(_tab_groups[_OPEN_TABS_TAB_GROUP], hwnd);
     //   p("HIDE");
     //   break;
   }
@@ -326,7 +323,7 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   }
 
   // Gather all windows on startup
-  _open_windows = getAllAltTabWindows();
+  _tab_groups[_OPEN_TABS_TAB_GROUP] = getAllAltTabWindows();
 
 
   SetLayeredWindowAttributes(_hwnd, RGB(0,0,0), 0, LWA_COLORKEY);
@@ -387,7 +384,7 @@ void Application::runApplication() {
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    for (const auto& w : _open_windows) {
+    for (const auto& w : _tab_groups[_OPEN_TABS_TAB_GROUP]) {
       std::cout << w->title << "\n";
     }
     std::cout << std::endl;
@@ -395,7 +392,7 @@ void Application::runApplication() {
     // Draw UI
     _fps_timer.update();
     if (_overlay_visible) {
-      ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta(), _tab_groups, _tab_group_layouts, _hotkey_windows, _hotkey_layout);
+      ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta(), _tab_groups, _tab_group_layouts);
     }
     
     ImGui::Render();

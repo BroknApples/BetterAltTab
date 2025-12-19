@@ -119,24 +119,18 @@ void ImGuiUI::_setupImGuiStyles() {
 // -------------------------------- Draw UI --------------------------------
 
 void ImGuiUI::drawUI(const double fps, const double delta,
-    const TabGroupWindows& tab_groups,
-    const TabGroupLayout& tab_group_layout,
-    const HotkeyWindows& hotkeys,
-    const HotkeyLayout hotkey_layout) {
-  if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layout); }
-  if (_hotkey_panel_visible)    { _renderHotkeyUI(hotkeys, hotkey_layout); }
+    const TabGroupMap& tab_groups,
+    const TabGroupLayoutList& tab_group_layouts) {
+  if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layouts); }
+  if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(_HOTKEY_TAB_GROUP), tab_group_layouts.at(_HOTKEY_TAB_GROUP)); }
   if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
 }
 
 
 // -------------------------------- UI Rendering Helpers --------------------------------
 
-/**
- * @brief Outputs right-aligned for an ImGui call
- * @param fmt formatted text
- * @param ... formatted text vars
- */
-void ImGuiRightAlignedText(const char* fmt, ...) {
+
+void ImGuiUI::_ImGuiRightAlignedText(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
@@ -153,15 +147,50 @@ void ImGuiRightAlignedText(const char* fmt, ...) {
 }
 
 
-// -------------------------------- UI Rendering --------------------------------
-
-
-void ImGuiUI::_renderTabGroupsUI(const TabGroupWindows& tab_groups, const TabGroupLayout& tab_group_layout) {
-  
+void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout) {
+  for (const auto& tab : tabs) {
+    _renderTabItem(tab, layout);
+  }
 }
 
 
-void ImGuiUI::_renderHotkeyUI(const HotkeyWindows& hotkeys, const HotkeyLayout hotkey_layout) {
+void ImGuiUI::_renderTabItem(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout) {
+  // Total size: image + text
+  // ImVec2 text_size = ImGui::CalcTextSize(text);
+  // ImVec2 total_size = ImVec2(std::max(image_size.x, text_size.x), image_size.y + text_size.y + 4);
+
+  // // Create invisible button for the entire area
+  // if (ImGui::InvisibleButton(text, total_size))
+  //     return true; // clicked
+
+  // // Draw text
+  // ImVec2 pos = ImGui::GetItemRectMin();
+  // ImGui::SetCursorScreenPos(pos);
+  // ImGui::Text("%s", text);
+
+  // // Draw image below the text
+  // ImGui::SetCursorScreenPos(ImVec2(pos.x + (total_size.x - image_size.x)/2, pos.y + text_size.y + 4));
+  // ImGui::Image(texture, image_size);
+
+}
+
+
+// -------------------------------- UI Rendering --------------------------------
+
+
+void ImGuiUI::_renderTabGroupsUI(const TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
+  for (const auto& [title, tabs] : tab_groups) {
+    const TabGroupLayout layout = tab_group_layouts.at(title);
+    
+    if (ImGui::Begin(title.c_str())) {
+      _renderTabGroup(title, tabs, layout);
+    }
+    ImGui::End();
+  }
+}
+
+
+void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotkey_layout) {
   static constexpr ImGuiWindowFlags HOTKEY_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove;
 
   if (_hotkey_layout_horizontal) { // horizontal Layout

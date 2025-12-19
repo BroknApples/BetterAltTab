@@ -19,36 +19,27 @@
 #include "win_utils.hpp"
 
 
-// Types
-using TabGroupWindows =
-  std::vector<
-    std::pair<
-      std::string,
-      std::vector<std::shared_ptr<WindowInfo>>
-    >
-  >;
-using TabGroupLayout =
-  std::vector<
-    std::pair<
-      std::string,
-      WindowItemLayout
-    >
-  >;
-using HotkeyWindows = 
-  std::array<
-    std::shared_ptr<WindowInfo>,
-    10
-  >;
-using HotkeyLayout = WindowItemLayout;
-
-
 /**
  * @brief Layout used to define the style of rendering a tab group should render with.
  */
-enum WindowItemLayout {
+enum TabGroupLayout {
   GRID,
   VERTICAL_LIST
 };
+
+
+// Types
+using TabGroup = std::vector<std::shared_ptr<WindowInfo>>;
+using TabGroupMap =
+  std::unordered_map<
+    std::string,
+    TabGroup
+  >;
+using TabGroupLayoutList =
+  std::unordered_map<
+    std::string,
+    TabGroupLayout
+  >;
 
 
 /**
@@ -66,6 +57,7 @@ class ImGuiUI {
     static constexpr ImVec2 _TOP_LEFT_CORNER_POS = ImVec2(0.0f, 0.0f);
     static constexpr ImVec2 _TOP_RIGHT_CORNER_POS = ImVec2(1.0f, 0.0f);
     static constexpr ImVec2 _BOTTOM_RIGHT_CORNER_POS = ImVec2(1.0f, 1.0f);
+    static inline const std::string _HOTKEY_TAB_GROUP = "Hotkey TabGroup"; // Special instance of a tab group
 
     // vars
     static bool _tab_groups_visible;
@@ -76,11 +68,33 @@ class ImGuiUI {
     static bool _hotkey_layout_horizontal; // True = horizontal, False = Vertical
 
 
-    // Render funcs
+    // Render Helpers
 
-    static void _renderWindowItem(const WindowItemLayout layout);
-    static void _renderTabGroupsUI(const TabGroupWindows& tab_groups, const TabGroupLayout& tab_group_layout);
-    static void _renderHotkeyUI(const HotkeyWindows& hotkeys, const HotkeyLayout hotkey_layout);
+    /**
+     * @brief Outputs right-aligned for an ImGui call
+     * @param fmt formatted text
+     * @param ... formatted text vars
+     */
+    void _ImGuiRightAlignedText(const char* fmt, ...);
+
+    /**
+     * @brief Renders a tab group with the proper layout
+     * @param title: Title to give the tab group
+     * @param tabs: Tabs to render
+     * @param layout: Layout to render with
+     */
+    static void _renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout);
+
+    /**
+     * @brief Renders a tab from a tab group
+     * @param layout: Layout to render with
+     * @param info: Window info to draw
+     */
+    static void _renderTabItem(const std::shared_ptr<WindowInfo> info, const TabGroupLayout layout);
+
+    // Render funcs
+    static void _renderTabGroupsUI(const TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts);
+    static void _renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotkey_layout);
     static void _renderSettingsUI(const double fps, const double delta);
 
   public:
@@ -99,15 +113,11 @@ class ImGuiUI {
     /**
      * @brief Draws all UI elements that should be drawn (must be visible)
      * @param tab_groups: Tab groups to render
-     * @param tab_group_layout: Layout to render the tab groups with
-     * @param hotkeys: Hotkey windows
-     * @param hotkey_layout: Layout to render the hotkeys with
+     * @param tab_group_layouts: Layout to render the tab groups with
      */
     static void drawUI(const double fps, const double delta,
-      const TabGroupWindows& tab_groups,
-      const TabGroupLayout& tab_group_layout,
-      const HotkeyWindows& hotkeys,
-      const HotkeyLayout hotkey_layout
+      const TabGroupMap& tab_groups,
+      const TabGroupLayoutList& tab_group_layouts
     );
 
 

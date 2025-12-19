@@ -1,4 +1,12 @@
+# VS Code settings
 .vscode/
+
+# Build output
 build/
+
+# Config and binaries
 *.ini
-*/*.ini
+*.exe
+
+# Workspace file
+BetterAltTab.code-workspace
