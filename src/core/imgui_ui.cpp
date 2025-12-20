@@ -3,6 +3,8 @@
 
 // ----------------- Static Vars -----------------
 
+bool ImGuiUI::_window_just_focused = false;
+
 bool ImGuiUI::_tab_groups_visible = false;
 bool ImGuiUI::_hotkey_panel_visible = false;
 bool ImGuiUI::_settings_panel_visible = false;
@@ -34,20 +36,32 @@ void ImGuiUI::_ImGuiRightAlignedText(const char* fmt, ...) {
 
 
 std::string ImGuiUI::_fitStringToWidth(const std::string& str, const float max_width, const bool ellipses) {
+  // Don't check empty strings
   if (str.empty()) return "";
+
+  // Already fits
+  if (ImGui::CalcTextSize(str.c_str()).x <= max_width) {
+    return str;
+  }
 
   const int LEN = static_cast<int>(str.size());
   int left = 0;
-  int right = LEN - 1;
-  int fit = 0;
+  int right = LEN;
+  int fit = 0; // end idx
+
+  float available_width = max_width;
+  if (ellipses) {
+    available_width -= ImGui::CalcTextSize("...").x;
+  }
 
   // Binary search method
   while (left <= right) {
-    const int mid = (left + right) / 2;
+    const int mid = left + (left + right) / 2;
     const std::string sub = str.substr(0, mid);
     const ImVec2 size = ImGui::CalcTextSize(sub.c_str());
+    std::cout << "str: " << sub << " | len: " << size.x << "\n";
 
-    if (size.x <= max_width) {
+    if (size.x <= available_width) {
       fit = mid;       // this length fits
       left = mid + 1;  // try longer
     }
@@ -60,23 +74,45 @@ std::string ImGuiUI::_fitStringToWidth(const std::string& str, const float max_w
   std::string result = str.substr(0, fit);
 
   // Add ellipsis if truncated
-  if (ellipses && fit < LEN) {
-    if (fit > 3) {
-      result = str.substr(0, fit - 3) + "...";
-    }
-    else {
-      result = "...";
-    }
+  if (ellipses) {
+    result += "...";
   }
 
   return result;
 }
 
 
+void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size) {
+  // Total size: image + text
+  ImGuiStyle& style = ImGui::GetStyle();
+  const float LINE_HEIGHT = ImGui::GetTextLineHeight();
+  const float Y_PADDING = style.FramePadding.y;
+  const ImVec2 TOTAL_SIZE = ImVec2(cell_size.x, cell_size.y + LINE_HEIGHT + Y_PADDING);
+
+  // Get text substr
+  const std::string TEXT_SUBSTR = _fitStringToWidth(info->title, cell_size.x, true);
+  
+  // Create invisible button for the entire area
+  if (ImGui::InvisibleButton((info->title + "_" + group_title + "-button").c_str(), TOTAL_SIZE)) {
+    // std::cout << "[CLICKED] " << info->title << std::endl;
+    focusWindow(info->hwnd);
+    setWindowJustFocused(true);
+
+    // TODO: Context-menu
+  }
+
+  // Set cursor pos
+  ImVec2 pos = ImGui::GetItemRectMin();
+  ImGui::SetCursorScreenPos(pos);
+  ImGui::Text("%s", TEXT_SUBSTR.c_str());           // Draw text
+  ImGui::Image((ImTextureID)info->tex, cell_size);  // Draw image below the text
+}
+
+
 void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout) {
   // Constants
   static constexpr ImGuiTableFlags TABLE_FLAGS = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoPadOuterX;
-  static constexpr ImVec2 CELL_SIZE = ImVec2(96.0f, 96.0f);
+  static constexpr ImVec2 CELL_SIZE = ImVec2(640.0f, 360.0f);
   const float PADDING = ImGui::GetStyle().ItemSpacing.x;
   const float AVAIL = ImGui::GetContentRegionAvail().x;
   const int COLUMNS = std::max(static_cast<int>(AVAIL / (CELL_SIZE.x + PADDING)), 1); // Must have AT LEAST 1 column
@@ -94,30 +130,6 @@ void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, con
     }
     ImGui::EndTable();
   }
-}
-
-
-void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size) {
-  // Total size: image + text
-  ImGuiStyle& style = ImGui::GetStyle();
-  const float LINE_HEIGHT = ImGui::GetTextLineHeight();
-  const float Y_PADDING = style.FramePadding.y;
-  const ImVec2 TOTAL_SIZE = ImVec2(cell_size.x, cell_size.y + LINE_HEIGHT + Y_PADDING);
-
-  // Get text substr
-  const std::string TEXT_SUBSTR = _fitStringToWidth(info->title, cell_size.x, true);
-  
-  // Create invisible button for the entire area
-  if (ImGui::InvisibleButton((info->title + "_" + group_title + "-button").c_str(), TOTAL_SIZE)) {
-    std::cout << "[CLICKED] " << info->title << std::endl;
-    // TODO: On-click
-  }
-
-  // Set cursor pos
-  ImVec2 pos = ImGui::GetItemRectMin();
-  ImGui::SetCursorScreenPos(pos);
-  ImGui::Text("%s", TEXT_SUBSTR.c_str());           // Draw text
-  ImGui::Image((ImTextureID)info->tex, cell_size);  // Draw image below the text
 }
 
 
@@ -264,6 +276,7 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
       }
       
       if (ImGui::CollapsingHeader("Hotkey Panel Options")) {
+        ImGui::Indent();
         if (ImGui::CollapsingHeader("Keybinds")) {
           static constexpr const char* PRESS_KEY_PLACEHOLDER = "...";
           static int active_bind = -1;
@@ -300,15 +313,24 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
           }
 
           for (int i = 0; i < 10; i++) {
-            const char* label = (active_bind == i) ?
-              PRESS_KEY_PLACEHOLDER :
-              ImGui::GetKeyName(Config::keybinds[i].key);
+            // Text label
+            std::stringstream ss;
+            ss << "Slot #" << std::left << std::setw(2) << (i + 1); 
+            const std::string text = ss.str();
 
-            if (ImGui::Button(label)) {
+            // Button text
+            const char* button = (
+              (active_bind == i) ? PRESS_KEY_PLACEHOLDER : ImGui::GetKeyName(Config::keybinds[i].key)
+            );
+
+            ImGui::Text(text.c_str());
+            ImGui::SameLine();
+            if (ImGui::Button(button)) {
               active_bind = i;
             }
           }
         }
+        ImGui::Unindent();
 
 
         // Other Settings

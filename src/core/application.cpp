@@ -429,6 +429,17 @@ void Application::runApplication() {
     if (_overlay_visible) {
       ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta(), _tab_groups, _tab_group_layouts);
     }
+
+    // If a window was just focused, then set all items to not visible
+    if (ImGuiUI::wasWindowJustFocused()) {
+      ImGuiUI::setWindowJustFocused(false);
+
+      // TODO: Add a setting that allows you to toggle whether or 
+      // not to set these to not visible when focusing a window
+      ImGuiUI::setTabGroupsVisibility(false);
+      ImGuiUI::setHotkeyPanelVisibility(false);
+      ImGuiUI::setSettingsPanelVisibility(false);
+    }
     
     // Render onto screen
     ImGui::Render();

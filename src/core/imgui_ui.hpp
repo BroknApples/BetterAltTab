@@ -5,7 +5,9 @@
   #define NOMINMAX
 #endif // NOMINMAX
 
+#include <iomanip>
 #include <cstdio>
+#include <sstream>
 #include <vector>
 #include <array>
 #include <memory>
@@ -68,6 +70,8 @@ class ImGuiUI {
     static constexpr ImVec2 _BOTTOM_RIGHT_CORNER_POS = ImVec2(1.0f, 1.0f);
 
     // vars
+    static bool _window_just_focused;
+
     static bool _tab_groups_visible;
     static bool _hotkey_panel_visible;
     static bool _settings_panel_visible;
@@ -97,15 +101,6 @@ class ImGuiUI {
 
 
     /**
-     * @brief Renders a tab group with the proper layout
-     * @param title: Title to give the tab group
-     * @param tabs: Tabs to render
-     * @param layout: Layout to render with
-     */
-    static void _renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout);
-
-
-    /**
      * @brief Renders a tab's cell in a tab group
      * @param group_title: Title of the tab group its rendering in
      * @param info: Window info to draw
@@ -113,6 +108,15 @@ class ImGuiUI {
      * @param cell_size: Size of the cell to render
      */
     static void _renderTabCell(const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size);
+
+
+    /**
+     * @brief Renders a tab group with the proper layout
+     * @param title: Title to give the tab group
+     * @param tabs: Tabs to render
+     * @param layout: Layout to render with
+     */
+    static void _renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout);
 
 
     /**
@@ -163,6 +167,9 @@ class ImGuiUI {
 
 
     // Inline funcs
+
+    static const bool wasWindowJustFocused() { return _window_just_focused; }
+    static void setWindowJustFocused(const bool v) { _window_just_focused = v; }
 
     static void setTabGroupsVisibility(const bool v) { _tab_groups_visible = v; }
     static const bool isTabGroupsVisible() { return _tab_groups_visible; }
