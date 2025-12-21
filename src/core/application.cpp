@@ -147,7 +147,7 @@ void Application::_showTrayMenu() {
         updateWindowInfoListTextures(_tab_groups.at(StaticTabGroups::OPEN_TABS), _pd3d_device);
       }
       ImGuiUI::setTabGroupsVisibility(NOT_VIS);
-
+      ImGuiUI::setNeedsMovingRedraw(true);
       break;
     }
     case TrayItems::SHOW_HOTKEYS: {
@@ -157,12 +157,14 @@ void Application::_showTrayMenu() {
         updateWindowInfoListTextures(_tab_groups.at(StaticTabGroups::HOTKEYS), _pd3d_device);
       }
       ImGuiUI::setHotkeyPanelVisibility(NOT_VIS);
+      ImGuiUI::setNeedsMovingRedraw(true);
       break;
     }
     case TrayItems::SHOW_SETTINGS: {
       const bool NOT_VIS = !ImGuiUI::isSettingsPanelVisible();
       if (!_overlay_visible && NOT_VIS) _toggleOverlayVisible();
       ImGuiUI::setSettingsPanelVisibility(NOT_VIS);
+      ImGuiUI::setNeedsMovingRedraw(true);
       break;
     }
     case TrayItems::EXIT_APP: {
@@ -259,10 +261,16 @@ void CALLBACK Application::_WinEventProc(HWINEVENTHOOK hook, DWORD event, HWND h
       //p("DESTROY");
       break;
 
+    case EVENT_SYSTEM_FOREGROUND:
+      // Update last focused time
+      updateWindowInfoFocusTime(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
+      //p("FOREGROUND");
+      break;
+
     // case EVENT_OBJECT_SHOW:
-    //   // Add to list
-    //   addWindowToVisibleAltTabList(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
-    //   p("SHOW");
+    //   // Update last focused time
+    //   updateWindowInfoFocusTime(_tab_groups[StaticTabGroups::OPEN_TABS], hwnd);
+    //   //p("SHOW");
     //   break;
 
     // case EVENT_OBJECT_HIDE:
@@ -441,13 +449,59 @@ void Application::runApplication() {
       ImGuiUI::setSettingsPanelVisibility(false);
     }
     
-    // Render onto screen
-    ImGui::Render();
-    float clear[4] = {0,0,0,0};
-    _pd3d_device_context->OMSetRenderTargets(1, &_main_render_target_view, nullptr);
-    _pd3d_device_context->ClearRenderTargetView(_main_render_target_view, clear);
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    _p_swap_chain->Present(Config::vsync, 0);
+    // Render ImGui
+    
+    
+
+    // ---------------- Conditional Rendering ----------------
+
+    // Only update the screen if an imgui ui object is moved
+    // or an io event has been happening for a specified time period
+
+    static double io_counter = 0.0;
+    static constexpr double IO_COUNTER_MAX = 1.0 / 20.0; // 20 times per second
+    if (ImGuiUI::needsIoRedraw()) {
+      io_counter += _fps_timer.getDelta();
+    }
+    else if (io_counter != 0.0) {
+      io_counter = 0.0;
+    }
+
+    // Render
+    if (ImGuiUI::needsMovingRedraw()) {
+      ImGui::Render();
+
+      float clear[4] = {0,0,0,0};
+      _pd3d_device_context->OMSetRenderTargets(1, &_main_render_target_view, nullptr);
+      _pd3d_device_context->ClearRenderTargetView(_main_render_target_view, clear);
+      ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+      _p_swap_chain->Present(Config::vsync, 0);
+
+      ImGuiUI::setNeedsIoRedraw(false);
+      ImGuiUI::setNeedsMovingRedraw(false);
+      //std::cout << "MOVING REDRAW\n";
+    }
+    else if (io_counter >= IO_COUNTER_MAX) {
+      ImGui::Render();
+
+      float clear[4] = {0,0,0,0};
+      _pd3d_device_context->OMSetRenderTargets(1, &_main_render_target_view, nullptr);
+      _pd3d_device_context->ClearRenderTargetView(_main_render_target_view, clear);
+      ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+      _p_swap_chain->Present(Config::vsync, 0);
+
+      io_counter -= IO_COUNTER_MAX;
+      ImGuiUI::setNeedsIoRedraw(false);
+      //std::cout << "IO REDRAW\n";
+    }
+    else {
+      ImGui::EndFrame();
+      Sleep(10); // Sleep 10 milliseconds --> Reduce CPU usage
+
+      auto now = std::chrono::system_clock::now();
+      std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+      //std::cout << "Skipping redraw | " << std::ctime(&now_c) << "\n";
+    }
   }
 }
 

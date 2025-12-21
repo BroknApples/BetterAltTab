@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <memory>
+#include <chrono>
 #include <d3d11.h>
 #include <windows.h>
 #include <dwmapi.h>
@@ -88,6 +89,14 @@ bool updateWindowInfoListItemTitle(std::vector<std::shared_ptr<WindowInfo>>& lis
  */
 void updateWindowInfoListTextures(std::vector<std::shared_ptr<WindowInfo>>& list, ID3D11Device* pd3d_device);
 
+
+/**
+ * @brief Updates the given hwnd's last focus time in a window info list
+ * @param list: List to update in
+ * @param hwnd: hwnd to update
+ * @returns bool: True if the hwnd exists in the list, false otherwise.
+ */
+bool updateWindowInfoFocusTime(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd);
 
 /**
  * @brief Callback for EnumWindows
@@ -261,6 +270,7 @@ struct WindowInfo {
   WindowInfo() = default;
   WindowInfo(HWND h) : hwnd(h), tex(nullptr) {
     title = getWindowTitle(hwnd);
+    last_focused = std::chrono::steady_clock::now();
   }
   ~WindowInfo() {
     tex->Release();
@@ -269,6 +279,7 @@ struct WindowInfo {
   HWND hwnd;
   std::string title;
   ID3D11ShaderResourceView* tex;
+  std::chrono::steady_clock::time_point last_focused;
 };
 
 

@@ -24,6 +24,9 @@ bool isInstanceUnique() {
 // ---------------------- Window functions ----------------------
 
 std::string getWindowTitle(HWND hwnd) {
+  // Check if window still exists
+  if (!IsWindow(hwnd)) return "";
+  
   const int len = GetWindowTextLengthA(hwnd);
   std::string title(len, '\0');
   GetWindowTextA(hwnd, title.data(), len + 1);
@@ -59,6 +62,9 @@ bool isAltTabWindow(HWND hwnd) {
 
 
 void addWindowToAltTabList(std::vector<std::shared_ptr<WindowInfo>>& list, HWND hwnd) {
+  // Check if window still exists
+  if (!IsWindow(hwnd)) return;
+  
   if (isAltTabWindow(hwnd) && (std::none_of(list.begin(), list.end(), [hwnd](const std::shared_ptr<WindowInfo>& w) {
       return w->hwnd == hwnd;
     }))) {
@@ -80,6 +86,9 @@ void removeWindowFromWindowInfoList(std::vector<std::shared_ptr<WindowInfo>>& li
 
 
 bool updateWindowInfoListItemTitle(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd) {
+  // Check if window still exists
+  if (!IsWindow(hwnd)) return false;
+  
   auto it = std::find_if(list.begin(), list.end(), [hwnd](const std::shared_ptr<WindowInfo>& w){
     return w->hwnd == hwnd; // check if hwnd matches
   });
@@ -110,6 +119,22 @@ void updateWindowInfoListTextures(std::vector<std::shared_ptr<WindowInfo>>& list
       ptr->tex = tmp;
     }
   }
+}
+
+
+bool updateWindowInfoFocusTime(std::vector<std::shared_ptr<WindowInfo>>& list, const HWND hwnd) {
+  // Check if window still exists
+  if (!IsWindow(hwnd)) return false;
+
+  for (const auto& ptr : list) {
+    if (ptr->hwnd == hwnd) {
+      ptr->last_focused = std::chrono::steady_clock::now();
+      return true;
+    }
+  }
+
+  // HWND did not exist in the list
+  return false;
 }
 
 

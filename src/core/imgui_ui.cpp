@@ -4,13 +4,15 @@
 // ----------------- Static Vars -----------------
 
 bool ImGuiUI::_window_just_focused = false;
+bool ImGuiUI::_needs_moving_redraw = false;
+bool ImGuiUI::_needs_io_redraw     = false;
 
-bool ImGuiUI::_tab_groups_visible = false;
-bool ImGuiUI::_hotkey_panel_visible = false;
+bool ImGuiUI::_tab_groups_visible     = false;
+bool ImGuiUI::_hotkey_panel_visible   = false;
 bool ImGuiUI::_settings_panel_visible = false;
 
 double ImGuiUI::_fps_display_accumulator = 0.0;
-bool ImGuiUI::_hotkey_layout_horizontal = false;
+bool ImGuiUI::_hotkey_layout_horizontal  = true;
 
 
 // ----------------- Private Functions -----------------
@@ -136,17 +138,44 @@ void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, con
 // -------------------------------- UI Rendering --------------------------------
 
 
-void ImGuiUI::_renderTabGroupsUI(const TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
+void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
   static constexpr ImGuiWindowFlags WINDOW_FLAGS = ImGuiCond_None;
+
+  // Static maps to store last position and size per window
+  static std::unordered_map<std::string, ImVec2> last_pos;
+  static std::unordered_map<std::string, ImVec2> last_size;
   
-  for (const auto& [title, tabs] : tab_groups) {
+  for (auto& [title, tabs] : tab_groups) {
+    // Sort by last focused time
+    std::sort(tabs.begin(), tabs.end(),
+      [](const std::shared_ptr<WindowInfo>& a, const std::shared_ptr<WindowInfo>& b) {
+        return a->last_focused > b->last_focused;
+      }
+    );
+
     // Skip hotkeys, this group has it's own special rendering function
     if (title == StaticTabGroups::HOTKEYS) continue;
 
     // Create window
     const TabGroupLayout LAYOUT = tab_group_layouts.at(title);
     if (ImGui::Begin(title.c_str(), nullptr, WINDOW_FLAGS)) {
+      // Render the tab group
       _renderTabGroup(title, tabs, LAYOUT);
+
+
+      // --- Check if it needs a redraw ---
+
+      ImVec2 pos = ImGui::GetWindowPos();
+      ImVec2 size = ImGui::GetWindowSize();
+      auto& lp = last_pos[title]; // default-constructed if first frame
+      auto& ls = last_size[title];
+
+      // Compare with previous frame, mark redraw if changed
+      if (lp.x != pos.x || lp.y != pos.y || ls.x != size.x || ls.y != size.y) {
+        setNeedsMovingRedraw(true);
+      }
+      lp = pos;
+      ls = size;
     }
     ImGui::End();
   }
@@ -172,6 +201,20 @@ void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotk
 
       }
       ImGui::EndChild();
+
+
+
+      // Check if it needs a redraw
+      static ImVec2 last_pos = ImGui::GetWindowPos();
+      static ImVec2 last_size = ImGui::GetWindowSize();
+      ImVec2 pos = ImGui::GetWindowPos();
+      ImVec2 size = ImGui::GetWindowSize();
+      if (pos.x != last_pos.x || pos.y != last_pos.y ||
+          size.x != last_size.x || size.y != last_size.y) {
+        setNeedsMovingRedraw(true);
+      }
+      last_pos = pos;
+      last_size = size;
     }
     ImGui::End();
   }
@@ -190,6 +233,18 @@ void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotk
 
       }
       ImGui::EndChild();
+
+      // Check if it needs a redraw
+      static ImVec2 last_pos = ImGui::GetWindowPos();
+      static ImVec2 last_size = ImGui::GetWindowSize();
+      ImVec2 pos = ImGui::GetWindowPos();
+      ImVec2 size = ImGui::GetWindowSize();
+      if (pos.x != last_pos.x || pos.y != last_pos.y ||
+          size.x != last_size.x || size.y != last_size.y) {
+        setNeedsMovingRedraw(true);
+      }
+      last_pos = pos;
+      last_size = size;
     }
     ImGui::End();
   }
@@ -243,7 +298,7 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
     // --- Main Content Area ---
     if (ImGui::BeginChild("Main Content Area", MAIN_CONTENT_SIZE)) {
       if (ImGui::CollapsingHeader("Graphics Options")) {
-        static bool vsync_checkbox;
+        static bool vsync_checkbox = true;
         if (ImGui::Checkbox("VSync (Recommended)", &vsync_checkbox)) {
           Config::vsync = vsync_checkbox;
         }
@@ -358,6 +413,21 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
       ImGui::Text("%4.0f fps    %3.0f ms", fps, (delta * 1000.0));
       ImGui::Text("BetterAltTab %s", Config::VERSION);
     }
+
+
+
+
+    // Check if it needs a redraw
+    static ImVec2 last_pos = ImGui::GetWindowPos();
+    static ImVec2 last_size = ImGui::GetWindowSize();
+    ImVec2 pos = ImGui::GetWindowPos();
+    ImVec2 size = ImGui::GetWindowSize();
+    if (pos.x != last_pos.x || pos.y != last_pos.y ||
+        size.x != last_size.x || size.y != last_size.y) {
+      setNeedsMovingRedraw(true);
+    }
+    last_pos = pos;
+    last_size = size;
   }
   ImGui::End();
 }
@@ -471,8 +541,12 @@ void ImGuiUI::setupImGuiStyles() {
 // -------------------------------- Draw UI --------------------------------
 
 void ImGuiUI::drawUI(const double fps, const double delta,
-    const TabGroupMap& tab_groups,
-    const TabGroupLayoutList& tab_group_layouts) {
+    TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
+  // User input = needs redraw
+  ImGuiIO& io = ImGui::GetIO();
+  bool userInteracted = io.WantCaptureMouse || io.WantCaptureKeyboard;
+  if (userInteracted) {setNeedsIoRedraw(true); }
+
   if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layouts); }
   if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(StaticTabGroups::HOTKEYS), tab_group_layouts.at(StaticTabGroups::HOTKEYS)); }
   if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }

@@ -71,6 +71,8 @@ class ImGuiUI {
 
     // vars
     static bool _window_just_focused;
+    static bool _needs_moving_redraw;
+    static bool _needs_io_redraw;
 
     static bool _tab_groups_visible;
     static bool _hotkey_panel_visible;
@@ -124,7 +126,7 @@ class ImGuiUI {
      * @param tab_groups: Map of tab groups to render
      * @param tab_group_layouts: Map of the layout for each tab group
      */
-    static void _renderTabGroupsUI(const TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts);
+    static void _renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts);
 
 
     /**
@@ -161,8 +163,7 @@ class ImGuiUI {
      * @param tab_group_layouts: Layout to render the tab groups with
      */
     static void drawUI(const double fps, const double delta,
-      const TabGroupMap& tab_groups,
-      const TabGroupLayoutList& tab_group_layouts
+      TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts
     );
 
 
@@ -170,6 +171,11 @@ class ImGuiUI {
 
     static const bool wasWindowJustFocused() { return _window_just_focused; }
     static void setWindowJustFocused(const bool v) { _window_just_focused = v; }
+    static const bool needsMovingRedraw() { return _needs_moving_redraw; }
+    static void setNeedsMovingRedraw(const bool v) { _needs_moving_redraw = v; }
+    static const bool needsIoRedraw() { return _needs_io_redraw; }
+    static void setNeedsIoRedraw(const bool v) { _needs_io_redraw = v; }
+
 
     static void setTabGroupsVisibility(const bool v) { _tab_groups_visible = v; }
     static const bool isTabGroupsVisible() { return _tab_groups_visible; }

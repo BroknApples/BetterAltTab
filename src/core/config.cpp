@@ -7,7 +7,7 @@ bool Config::initialized = false;
 ImVec2 Config::monitor_size = ImVec2(1920, 1080); // TODO: Read from save file the saved monitor size for default value
 float Config::settings_panel_width_percent = 20.0f;  // 20% of the screen
 float Config::settings_panel_height_percent = 100.0f; // Full screen height
-int Config::vsync = 0;
+int Config::vsync = 1;
 
 // Keybinds
 std::array<Keybind, 10> Config::keybinds = {
