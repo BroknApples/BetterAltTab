@@ -3,16 +3,16 @@
 
 // ----------------- Static Vars -----------------
 
-bool ImGuiUI::_window_just_focused = false;
-bool ImGuiUI::_needs_moving_redraw = false;
-bool ImGuiUI::_needs_io_redraw     = false;
+bool ImGuiUI::_window_just_focused       = false;
+int ImGuiUI::_redraw_moving_frames_count = 0;
+bool ImGuiUI::_needs_io_redraw           = false;
 
 bool ImGuiUI::_tab_groups_visible     = false;
 bool ImGuiUI::_hotkey_panel_visible   = false;
 bool ImGuiUI::_settings_panel_visible = false;
 
 double ImGuiUI::_fps_display_accumulator = 0.0;
-bool ImGuiUI::_hotkey_layout_horizontal  = true;
+bool ImGuiUI::_request_saved_config_reset = false;
 
 
 // ----------------- Private Functions -----------------
@@ -61,7 +61,7 @@ std::string ImGuiUI::_fitStringToWidth(const std::string& str, const float max_w
     const int mid = left + (left + right) / 2;
     const std::string sub = str.substr(0, mid);
     const ImVec2 size = ImGui::CalcTextSize(sub.c_str());
-    std::cout << "str: " << sub << " | len: " << size.x << "\n";
+    //std::cout << "str: " << sub << " | len: " << size.x << "\n";
 
     if (size.x <= available_width) {
       fit = mid;       // this length fits
@@ -165,8 +165,8 @@ void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutLi
 
       // --- Check if it needs a redraw ---
 
-      ImVec2 pos = ImGui::GetWindowPos();
-      ImVec2 size = ImGui::GetWindowSize();
+      const ImVec2 pos = ImGui::GetWindowPos();
+      const ImVec2 size = ImGui::GetWindowSize();
       auto& lp = last_pos[title]; // default-constructed if first frame
       auto& ls = last_size[title];
 
@@ -185,7 +185,7 @@ void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutLi
 void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotkey_layout) {
   static constexpr ImGuiWindowFlags HOTKEY_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove;
 
-  if (_hotkey_layout_horizontal) { // horizontal Layout
+  if (Config::hotkey_panel_horizontal_layout) { // horizontal Layout
     // Bottom-left corner placement
     const ImVec2 size(
       Config::monitor_size.x * _HOTKEY_PANEL_LENGTH_PERCENT / 100.0f,
@@ -237,8 +237,8 @@ void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotk
       // Check if it needs a redraw
       static ImVec2 last_pos = ImGui::GetWindowPos();
       static ImVec2 last_size = ImGui::GetWindowSize();
-      ImVec2 pos = ImGui::GetWindowPos();
-      ImVec2 size = ImGui::GetWindowSize();
+      const ImVec2 pos = ImGui::GetWindowPos();
+      const ImVec2 size = ImGui::GetWindowSize();
       if (pos.x != last_pos.x || pos.y != last_pos.y ||
           size.x != last_size.x || size.y != last_size.y) {
         setNeedsMovingRedraw(true);
@@ -264,8 +264,7 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
   static constexpr ImGuiWindowFlags SETTINGS_PANEL_FLAGS = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
   if (ImGui::Begin("Settings", &_settings_panel_visible, SETTINGS_PANEL_FLAGS)) {
     static const float TEXT_HEIGHT = ImGui::CalcTextSize("Placeholder Text").y;
-    const float SETTINGS_PANEL_HEIGHT = ImGui::GetWindowSize().y;
-    const float DESCRIPTION_POS = TEXT_HEIGHT * 2.7f * 1.67f; // SIX-SEVEN !!!
+    static const float DESCRIPTION_POS = TEXT_HEIGHT * 1.67f * 1.67f; // SIX-SEVEN !!!
     const ImVec2 MAIN_CONTENT_SIZE(0.0f, -DESCRIPTION_POS);
 
     // --- Toolbar Area ---
@@ -280,11 +279,19 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
 
       if (ImGui::Button("💾 Save")) {
         // Handle 'Save' action
+        if (Config::save()) {
+          std::cout << "Saved Config as '" << Config::CONFIG_SAVE_PATH << "'" << std::endl;
+        }
+        else {
+          std::cout << "Error saving config." << std::endl;
+        }
       }
       ImGui::SameLine();
 
       if (ImGui::Button("↩️ Undo")) {
         // Handle 'Undo' action
+        _request_saved_config_reset = true;
+        std::cout << "Removing staged changes from the config." << std::endl;
       }
     }
 
@@ -298,10 +305,7 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
     // --- Main Content Area ---
     if (ImGui::BeginChild("Main Content Area", MAIN_CONTENT_SIZE)) {
       if (ImGui::CollapsingHeader("Graphics Options")) {
-        static bool vsync_checkbox = true;
-        if (ImGui::Checkbox("VSync (Recommended)", &vsync_checkbox)) {
-          Config::vsync = vsync_checkbox;
-        }
+        (ImGui::Checkbox("VSync (Recommended)", &Config::vsync));
       }
       
       if (ImGui::CollapsingHeader("Settings Panel Options")) {
@@ -313,6 +317,10 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
         static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.80f * 4.0f; // Boxes are the size of 4 characters
         static float width_tmp = Config::settings_panel_width_percent;
         static float height_tmp = Config::settings_panel_height_percent;
+
+        syncTemp(width_tmp, Config::settings_panel_width_percent);
+        syncTemp(height_tmp,Config::settings_panel_height_percent);
+
         ImGui::PushItemWidth(SLIDER_WIDTH);
         if (ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.1f")) {
           width_tmp = std::clamp(width_tmp, SETTINGS_PANEL_MIN_WIDTH, SETTINGS_PANEL_MAX_WIDTH);
@@ -390,7 +398,7 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
 
         // Other Settings
 
-        ImGui::Checkbox("Horizontal Layout", &_hotkey_layout_horizontal);
+        ImGui::Checkbox("Horizontal Layout", &Config::hotkey_panel_horizontal_layout);
       }
     }
     ImGui::EndChild();
@@ -409,19 +417,21 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
       if (_fps_display_accumulator > _FPS_DISPLAY_UPDATE_DELAY) {
         _fps_display_accumulator -= _FPS_DISPLAY_UPDATE_DELAY;
       }
-      const float display_fps = std::min(fps, 999.0);
-      ImGui::Text("%4.0f fps    %3.0f ms", fps, (delta * 1000.0));
-      ImGui::Text("BetterAltTab %s", Config::VERSION);
+      const float TEXT_Y_POS = ImGui::GetCursorPosY();
+      ImGui::Text("%4.0f fps    %3.0f ms    %s", std::min(fps, 999.0), (delta * 1000.0), getFormattedRamUsage().c_str());
+      ImGui::SetCursorPosY(TEXT_Y_POS);
+      ImGuiUI::_ImGuiRightAlignedText("BetterAltTab %s", Config::VERSION);
     }
 
 
 
 
-    // Check if it needs a redraw
+    // ------------ Check if it needs a redraw ------------
+
     static ImVec2 last_pos = ImGui::GetWindowPos();
     static ImVec2 last_size = ImGui::GetWindowSize();
-    ImVec2 pos = ImGui::GetWindowPos();
-    ImVec2 size = ImGui::GetWindowSize();
+    const ImVec2 pos = ImGui::GetWindowPos();
+    const ImVec2 size = ImGui::GetWindowSize();
     if (pos.x != last_pos.x || pos.y != last_pos.y ||
         size.x != last_size.x || size.y != last_size.y) {
       setNeedsMovingRedraw(true);
@@ -542,6 +552,12 @@ void ImGuiUI::setupImGuiStyles() {
 
 void ImGuiUI::drawUI(const double fps, const double delta,
     TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
+  // Apply settings resets
+  if (_request_saved_config_reset) {
+    Config::resetToSaved();
+    _request_saved_config_reset = false;
+  }
+
   // User input = needs redraw
   ImGuiIO& io = ImGui::GetIO();
   bool userInteracted = io.WantCaptureMouse || io.WantCaptureKeyboard;

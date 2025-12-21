@@ -1,3 +1,24 @@
 {
-  
+    "Graphics Settings": {
+        "V-Sync": true
+    },
+    "Hotkey Panel": {
+        "Horizontal Layout": false,
+        "Keybinds": {
+            "Slot 1": "1",
+            "Slot 10": "0",
+            "Slot 2": "2",
+            "Slot 3": "3",
+            "Slot 4": "4",
+            "Slot 5": "5",
+            "Slot 6": "6",
+            "Slot 7": "7",
+            "Slot 8": "8",
+            "Slot 9": "9"
+        }
+    },
+    "Settings Panel": {
+        "Settings Panel Height Percent": 80.0,
+        "Settings Panel Width Percent": 20.0
+    }
 }

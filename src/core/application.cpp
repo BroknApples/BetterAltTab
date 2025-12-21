@@ -449,10 +449,7 @@ void Application::runApplication() {
       ImGuiUI::setSettingsPanelVisibility(false);
     }
     
-    // Render ImGui
     
-    
-
     // ---------------- Conditional Rendering ----------------
 
     // Only update the screen if an imgui ui object is moved
@@ -477,8 +474,8 @@ void Application::runApplication() {
       ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
       _p_swap_chain->Present(Config::vsync, 0);
 
+      ImGuiUI::decrementMovingRedraw(1);
       ImGuiUI::setNeedsIoRedraw(false);
-      ImGuiUI::setNeedsMovingRedraw(false);
       //std::cout << "MOVING REDRAW\n";
     }
     else if (io_counter >= IO_COUNTER_MAX) {

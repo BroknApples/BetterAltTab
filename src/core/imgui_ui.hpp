@@ -71,7 +71,7 @@ class ImGuiUI {
 
     // vars
     static bool _window_just_focused;
-    static bool _needs_moving_redraw;
+    static int _redraw_moving_frames_count;
     static bool _needs_io_redraw;
 
     static bool _tab_groups_visible;
@@ -79,7 +79,7 @@ class ImGuiUI {
     static bool _settings_panel_visible;
 
     static double _fps_display_accumulator;
-    static bool _hotkey_layout_horizontal; // True = horizontal, False = Vertical
+    static bool _request_saved_config_reset;
 
 
     // Render Helpers
@@ -89,7 +89,7 @@ class ImGuiUI {
      * @param fmt formatted text
      * @param ... formatted text vars
      */
-    void _ImGuiRightAlignedText(const char* fmt, ...);
+    static void _ImGuiRightAlignedText(const char* fmt, ...);
 
 
     /**
@@ -144,6 +144,15 @@ class ImGuiUI {
      */
     static void _renderSettingsUI(const double fps, const double delta);
 
+
+    /**
+     * @brief Syncs a temporary variable to its saved var
+     */
+    template<typename T>
+    static void syncTemp(T& tmp, const T& source) {
+      if (!ImGui::IsAnyItemActive()) tmp = source;
+    }
+
   public:
     /**
      * @brief Enforce Static-Only class
@@ -169,12 +178,15 @@ class ImGuiUI {
 
     // Inline funcs
 
-    static const bool wasWindowJustFocused() { return _window_just_focused; }
     static void setWindowJustFocused(const bool v) { _window_just_focused = v; }
-    static const bool needsMovingRedraw() { return _needs_moving_redraw; }
-    static void setNeedsMovingRedraw(const bool v) { _needs_moving_redraw = v; }
-    static const bool needsIoRedraw() { return _needs_io_redraw; }
+    static const bool wasWindowJustFocused() { return _window_just_focused; }
+
+    static void setNeedsMovingRedraw(const bool v) { if (v) _redraw_moving_frames_count = 5; }
+    static const bool needsMovingRedraw() { return _redraw_moving_frames_count > 0; }
+    static void decrementMovingRedraw(const int f) { _redraw_moving_frames_count -= f; }
+
     static void setNeedsIoRedraw(const bool v) { _needs_io_redraw = v; }
+    static const bool needsIoRedraw() { return _needs_io_redraw; }
 
 
     static void setTabGroupsVisibility(const bool v) { _tab_groups_visible = v; }

@@ -16,7 +16,10 @@
 #include <d3d11.h>
 #include <windows.h>
 #include <dwmapi.h>
+#include <psapi.h>
+
 #pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "psapi.lib")
 
 
 // Define PW_RENDERFULLCONTENT if missing (MinGW headers may not have it)
@@ -37,6 +40,13 @@ struct WindowInfo;
  * @returns bool: True/False of uniqueness
  */
 bool isInstanceUnique();
+
+
+/**
+ * @brief Gets the current ram Usage of the program
+ * @returns std::string: Ram usage in its best units
+ */
+std::string getFormattedRamUsage();
 
 
 // ---------------------- Window functions ----------------------

@@ -21,6 +21,32 @@ bool isInstanceUnique() {
 }
 
 
+std::string getFormattedRamUsage(){
+  PROCESS_MEMORY_COUNTERS_EX pmc;
+  if (!GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+    return "0 Bytes";
+  }
+
+  size_t bytes = pmc.WorkingSetSize;
+  const char* units[] = { "Bytes", "KB", "MB", "GB", "TB" };
+  int unit_index = 0;
+  double size = static_cast<double>(bytes);
+
+  // Keep dividing by 1024 until the number is small enough to read
+  while (size >= 1024 && unit_index < 4) {
+    size /= 1024.0;
+    unit_index++;
+  }
+
+  char buffer[64];
+  // Use %.2f for decimals if MB or GB, otherwise use %.0f for Bytes
+  const char* fmt = (unit_index == 0) ? "%.0f %s" : "%.2f %s";
+  snprintf(buffer, sizeof(buffer), fmt, size, units[unit_index]);
+  
+  return std::string(buffer);
+}
+
+
 // ---------------------- Window functions ----------------------
 
 std::string getWindowTitle(HWND hwnd) {

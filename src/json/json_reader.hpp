@@ -112,6 +112,8 @@ class JsonReader {
     }
 
 
+    // ---------------- Getters ----------------
+
     /**
      * @brief Generic getter with default value
      * @param key: Key to get the value of
@@ -219,6 +221,105 @@ class JsonReader {
      */
     bool getBool(const std::string& key, bool def = false, const std::string& key_seperator = ".") {
       return get<bool>(key, def, key_seperator);
+    }
+    
+
+    // ---------------- Setters ----------------
+
+    /**
+     * @brief Sets a value in the json
+     * @param key: Key to get the value of
+     * @tparam default_value: Default value if the key doesn't exist
+     * @param key_separator: The string used to seperate key levels key1.key2.key3 = [key1][key2][key3]
+     * @returns T: Data gathered from the json.
+     */
+    template <typename T>
+    void set(const std::string& key, const T& value, const std::string& key_separator = ".") {
+      // Tokenize key (same logic as get)
+      const int KEY_LENGTH = key.length();
+      const int SEP_LEN = key_separator.length();
+
+      std::vector<std::string> keys;
+      std::string curr;
+
+      for (int i = 0; i < KEY_LENGTH; i++) {
+        if (i <= KEY_LENGTH - SEP_LEN &&
+          key.substr(i, SEP_LEN) == key_separator) {
+          keys.push_back(curr);
+          curr.clear();
+          i += SEP_LEN - 1;
+        } else {
+          curr += key[i];
+        }
+      }
+      keys.push_back(curr);
+
+      // Walk / create path
+      nlohmann::json* current = &_json;
+
+      for (size_t i = 0; i < keys.size(); i++) {
+        const std::string& k = keys[i];
+
+        // Last key → assign value
+        if (i == keys.size() - 1) {
+          (*current)[k] = value;
+        }
+        // Intermediate → ensure object exists
+        else {
+          if (!current->contains(k) || !(*current)[k].is_object()) {
+            (*current)[k] = nlohmann::json::object();
+          }
+          current = &(*current)[k];
+        }
+      }
+    }
+
+
+    // --------------------------------------------------- //
+    // --------------- Convenience Helpers --------------- //
+    // --------------------------------------------------- //
+
+    
+    /**
+     * @brief Set a string from the json
+     * @param key: Key to set the json at
+     * @param value: Value to set to
+     * @param key_seperator: The string used to seperate key levels key1.key2.key3 = [key1][key2][key3]
+     */
+    void setString(const std::string& key, const std::string& value, const std::string& key_seperator = ".") {
+      set<std::string>(key, value, key_seperator);
+    }
+
+    /**
+     * @brief Set an integer from the json
+     * @param key: Key to set the json at
+     * @param value: Value to set to
+     * @param key_seperator: The string used to seperate key levels key1.key2.key3 = [key1][key2][key3]
+     */
+    void setInt(const std::string& key, int value, const std::string& key_seperator = ".") {
+      set<int>(key, value, key_seperator);
+    }
+
+
+    /**
+     * @brief Set a double from the json
+     * @param key: Key to set the json at
+     * @param value: Value to set to
+     * @param key_seperator: The string used to seperate key levels key1.key2.key3 = [key1][key2][key3]
+     */
+    void setDouble(const std::string& key, double value, const std::string& key_seperator = ".") {
+      set<double>(key, value, key_seperator);
+    }
+
+
+    /**
+     * @brief Set a bool from the json
+     * @param key: Key to set the json at
+     * @param value: Value to set to
+     * @param key_seperator: The string used to seperate key levels key1.key2.key3 = [key1][key2][key3]
+     */
+    void setBool(const std::string& key, bool value, const std::string& key_seperator = ".") {
+      set<bool>(key, value, key_seperator);
     }
 };
 
