@@ -90,17 +90,48 @@ void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_p
   const float LINE_HEIGHT = ImGui::GetTextLineHeight();
   const float Y_PADDING = style.FramePadding.y;
   const ImVec2 TOTAL_SIZE = ImVec2(cell_size.x, cell_size.y + LINE_HEIGHT + Y_PADDING);
+  const std::string LABEL_ID = info->title + "_" + group_title;
 
   // Get text substr
   const std::string TEXT_SUBSTR = _fitStringToWidth(info->title, cell_size.x, true);
   
+  // Push a unique ID for this cell
+  ImGui::PushID(info.get());
+  
   // Create invisible button for the entire area
-  if (ImGui::InvisibleButton((info->title + "_" + group_title + "-button").c_str(), TOTAL_SIZE)) {
+  if (ImGui::InvisibleButton("Cell", TOTAL_SIZE)) {
     // std::cout << "[CLICKED] " << info->title << std::endl;
     focusWindow(info->hwnd);
     setWindowJustFocused(true);
+  }
 
-    // TODO: Context-menu
+  // Context-menu
+  if (ImGui::BeginPopupContextItem("MyButtonContext")) {
+    /*
+    What goes here?
+    
+    - Pin tab (for the current tab group, add sorting option to keep at the top of
+               the list) (also adds a pin icon on the top right when rendering)
+    - Add to tab group
+    - Remove from current tab group (except for "Open Tabs" | it must always exist there)
+    - Add to hotkeys
+      * slot 1
+      * slot 2
+      * ...
+      * slot 10
+    - Open in file explorer
+    
+    */
+
+    if (ImGui::MenuItem("Option A")) {
+      //DoOptionA();
+      std::cout << "Option A\n";
+    }
+    if (ImGui::MenuItem("Option B")) {
+      //DoOptionB();
+      std::cout << "Option B\n";
+    }
+    ImGui::EndPopup();
   }
 
   // Set cursor pos
@@ -108,6 +139,9 @@ void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_p
   ImGui::SetCursorScreenPos(pos);
   ImGui::Text("%s", TEXT_SUBSTR.c_str());           // Draw text
   ImGui::Image((ImTextureID)info->tex, cell_size);  // Draw image below the text
+
+  // Remove unique ID for this cell
+  ImGui::PopID();
 }
 
 
@@ -304,10 +338,72 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
 
     // --- Main Content Area ---
     if (ImGui::BeginChild("Main Content Area", MAIN_CONTENT_SIZE)) {
-      if (ImGui::CollapsingHeader("Graphics Options")) {
-        (ImGui::Checkbox("VSync (Recommended)", &Config::vsync));
+      if (ImGui::CollapsingHeader("Tab Groups Options")) {
+
       }
       
+      if (ImGui::CollapsingHeader("Hotkey Panel Options")) {
+        ImGui::Indent();
+        if (ImGui::CollapsingHeader("Keybinds")) {
+          static constexpr const char* PRESS_KEY_PLACEHOLDER = "...";
+          static int active_bind = -1;
+
+          // TODO: Fix
+          if (active_bind != -1) {
+            ImGuiIO& io = ImGui::GetIO();
+            bool ctrl = io.KeyCtrl;
+            bool shift = io.KeyShift;
+            bool alt = io.KeyAlt;
+            // bool super = io.KeySuper;
+
+            if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+              active_bind = -1;
+            }
+
+            for (int key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key++) {
+              ImGuiKey k = static_cast<ImGuiKey>(key);
+
+              // Skip modifiers
+              if (k == ImGuiMod_Ctrl || k == ImGuiMod_Shift ||
+                  k == ImGuiMod_Alt  || k == ImGuiMod_Super) {
+                continue;
+              }
+
+              if (ImGui::IsKeyPressed(k)) {
+                Config::keybinds[active_bind] = Keybind{k, ctrl, shift, alt};
+                active_bind = -1;
+                break;
+              }
+            }
+          }
+
+          // Render each keybind slot's saved key combination.
+          for (int i = 0; i < 10; i++) {
+            // Text label
+            std::stringstream ss;
+            ss << "Slot #" << std::left << std::setw(2) << (i + 1); 
+            const std::string text = ss.str();
+
+            // Button text
+            const char* button = (
+              (active_bind == i) ? PRESS_KEY_PLACEHOLDER : ImGui::GetKeyName(Config::keybinds[i].key)
+            );
+
+            ImGui::Text(text.c_str());
+            ImGui::SameLine();
+            if (ImGui::Button(button)) {
+              active_bind = i;
+            }
+          }
+        }
+        ImGui::Unindent();
+
+
+        // Other Settings
+
+        ImGui::Checkbox("Horizontal Layout", &Config::hotkey_panel_horizontal_layout);
+      }
+
       if (ImGui::CollapsingHeader("Settings Panel Options")) {
         // Panel Width/Height
         constexpr float SETTINGS_PANEL_MIN_WIDTH = 20.0f;
@@ -337,74 +433,15 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
         }
         ImGui::PopItemWidth();
       }
-      
-      if (ImGui::CollapsingHeader("Hotkey Panel Options")) {
-        ImGui::Indent();
-        if (ImGui::CollapsingHeader("Keybinds")) {
-          static constexpr const char* PRESS_KEY_PLACEHOLDER = "...";
-          static int active_bind = -1;
 
-          /**
-           * @brief Function which actually handles the rebinding of a key.
-           */
-          if (active_bind != -1) {
-            ImGuiIO& io = ImGui::GetIO();
-            bool ctrl = io.KeyCtrl;
-            bool shift = io.KeyShift;
-            bool alt = io.KeyAlt;
-            // bool super = io.KeySuper;
-
-            if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-              active_bind = -1;
-            }
-
-            for (int key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key++) {
-              ImGuiKey k = static_cast<ImGuiKey>(key);
-
-              // Skip modifiers
-              if (k == ImGuiMod_Ctrl || k == ImGuiMod_Shift ||
-                  k == ImGuiMod_Alt  || k == ImGuiMod_Super) {
-                continue;
-              }
-
-              if (ImGui::IsKeyPressed(k)) {
-                Config::keybinds[active_bind] = Keybind{k, ctrl, shift, alt};
-                active_bind = -1;
-                break;
-              }
-            }
-          }
-
-          for (int i = 0; i < 10; i++) {
-            // Text label
-            std::stringstream ss;
-            ss << "Slot #" << std::left << std::setw(2) << (i + 1); 
-            const std::string text = ss.str();
-
-            // Button text
-            const char* button = (
-              (active_bind == i) ? PRESS_KEY_PLACEHOLDER : ImGui::GetKeyName(Config::keybinds[i].key)
-            );
-
-            ImGui::Text(text.c_str());
-            ImGui::SameLine();
-            if (ImGui::Button(button)) {
-              active_bind = i;
-            }
-          }
-        }
-        ImGui::Unindent();
-
-
-        // Other Settings
-
-        ImGui::Checkbox("Horizontal Layout", &Config::hotkey_panel_horizontal_layout);
+      if (ImGui::CollapsingHeader("Graphics Options")) {
+        (ImGui::Checkbox("VSync (Recommended)", &Config::vsync));
       }
     }
     ImGui::EndChild();
 
+
     // Add some spacing between the main content and the application data
-    //ImGui::SetCursorPosY(DESCRIPTION_POS); // 5% as padding
     ImGui::Spacing();
     ImGui::Spacing();
     ImGui::Separator();
