@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <memory>
 #include <chrono>
+#include <filesystem>
 #include <d3d11.h>
 #include <windows.h>
 #include <dwmapi.h>
@@ -21,11 +22,11 @@
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "psapi.lib")
 
-
 // Define PW_RENDERFULLCONTENT if missing (MinGW headers may not have it)
 #ifndef PW_RENDERFULLCONTENT
 #define PW_RENDERFULLCONTENT 0x00000002
 #endif
+
 
 // ---------------------- Struct definitions ----------------------
 
@@ -49,7 +50,23 @@ bool isInstanceUnique();
 std::string getFormattedRamUsage();
 
 
+/**
+ * @brief Opens the windows file explorer at the given path
+ * @param path: Path to the file to open at
+ */
+void openWindowsExplorerAtPath(const std::wstring& path);
+
+
 // ---------------------- Window functions ----------------------
+
+
+/**
+ * @brief Given an hwnd, find its location in the windows filesystem
+ * @param hwnd: Handle of a window
+ * @param path: Output variable for the path
+ * @returns bool: Success of process
+ */
+bool getWindowExecutablePath(HWND hwnd, std::wstring& path);
 
 
 /**

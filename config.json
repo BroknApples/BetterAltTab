@@ -3,7 +3,7 @@
         "V-Sync": true
     },
     "Hotkey Panel": {
-        "Horizontal Layout": false,
+        "Horizontal Layout": true,
         "Keybinds": {
             "Slot 1": "1",
             "Slot 10": "0",

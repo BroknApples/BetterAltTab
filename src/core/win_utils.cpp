@@ -47,7 +47,52 @@ std::string getFormattedRamUsage(){
 }
 
 
+void openWindowsExplorerAtPath(const std::wstring& path) {
+  std::wstring command = L"explorer.exe /select,\"" + path + L"\"";
+
+  // Use ShellExecute to run the command
+  ShellExecuteW(NULL, L"open", L"explorer.exe", (L"/select,\"" + path + L"\"").c_str(), NULL, SW_SHOWDEFAULT);
+}
+
+
 // ---------------------- Window functions ----------------------
+
+
+
+bool getWindowExecutablePath(HWND hwnd, std::wstring& path) {
+  DWORD pid = 0;
+  GetWindowThreadProcessId(hwnd, &pid);
+
+  // Valid process id
+  if (!pid) return false;
+
+  HANDLE h_process = OpenProcess(
+    PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+    FALSE,
+    pid
+  );
+
+  // Valid process handle
+  if (!h_process) return false;
+
+  wchar_t temp[MAX_PATH];
+  DWORD size = MAX_PATH;
+
+  bool ok = QueryFullProcessImageNameW(
+    h_process,
+    0,
+    temp,
+    &size
+  );
+
+  CloseHandle(h_process);
+
+  if (!ok) return false;
+
+  path.assign(temp, size);
+  return true;
+}
+
 
 std::string getWindowTitle(HWND hwnd) {
   // Check if window still exists
@@ -132,6 +177,8 @@ bool updateWindowInfoListItemTitle(std::vector<std::shared_ptr<WindowInfo>>& lis
 
 void updateWindowInfoListTextures(std::vector<std::shared_ptr<WindowInfo>>& list, ID3D11Device* pd3d_device) {
   for (const auto& ptr : list) {
+    if (ptr == nullptr) continue;
+    
     ID3D11ShaderResourceView* tmp = nullptr;
     if (!buildWindowTextureFromHwnd(ptr->hwnd, tmp, pd3d_device)) continue;
 

@@ -104,21 +104,23 @@ class ImGuiUI {
 
     /**
      * @brief Renders a tab's cell in a tab group
+     * @param tabs: List of tab groups. NOTE: Only used for context-menu actions.
      * @param group_title: Title of the tab group its rendering in
      * @param info: Window info to draw
      * @param layout: Layout to render with
      * @param cell_size: Size of the cell to render
      */
-    static void _renderTabCell(const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size);
+    static void _renderTabCell(TabGroupMap& tabs, const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size);
 
 
     /**
      * @brief Renders a tab group with the proper layout
+     * @param tab_groups: Map of tab groups.
      * @param title: Title to give the tab group
      * @param tabs: Tabs to render
      * @param layout: Layout to render with
      */
-    static void _renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout);
+    static void _renderTabGroup(TabGroupMap& tab_groups, const std::string& title, const TabGroup tabs, const TabGroupLayout layout);
 
 
     /**
@@ -149,7 +151,7 @@ class ImGuiUI {
      * @brief Syncs a temporary variable to its saved var
      */
     template<typename T>
-    static void syncTemp(T& tmp, const T& source) {
+    static void _syncTemp(T& tmp, const T& source) {
       if (!ImGui::IsAnyItemActive()) tmp = source;
     }
 

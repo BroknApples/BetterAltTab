@@ -84,7 +84,10 @@ std::string ImGuiUI::_fitStringToWidth(const std::string& str, const float max_w
 }
 
 
-void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size) {
+// -------------------------------- UI Rendering --------------------------------
+
+
+void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size) {
   // Total size: image + text
   ImGuiStyle& style = ImGui::GetStyle();
   const float LINE_HEIGHT = ImGui::GetTextLineHeight();
@@ -114,7 +117,7 @@ void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_p
                the list) (also adds a pin icon on the top right when rendering)
     - Add to tab group
     - Remove from current tab group (except for "Open Tabs" | it must always exist there)
-    - Add to hotkeys
+    - Add hotkeys
       * slot 1
       * slot 2
       * ...
@@ -123,13 +126,44 @@ void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_p
     
     */
 
-    if (ImGui::MenuItem("Option A")) {
-      //DoOptionA();
-      std::cout << "Option A\n";
+    if (ImGui::MenuItem("Pin Tab")) {
+      // TODO: Implement.
     }
-    if (ImGui::MenuItem("Option B")) {
-      //DoOptionB();
-      std::cout << "Option B\n";
+    if (ImGui::BeginMenu("Add to tab group")) {
+      // TODO: Disable menu items if the current value already exists in the group
+      if (ImGui::MenuItem("Group 1")) { std::cout << "Added to Group 1\n"; }
+      if (ImGui::MenuItem("Group 2")) { std::cout << "Added to Group 2\n"; }
+      if (ImGui::MenuItem("Group 3")) { std::cout << "Added to Group 3\n"; }
+      ImGui::EndMenu();
+    }
+
+    // Remove from the current tab group
+    const bool remove_allowed = (info->title == StaticTabGroups::OPEN_TABS);
+    if (ImGui::MenuItem("Remove from tab group", nullptr, false, remove_allowed)) {
+      // TODO: Implement
+    }
+
+    // Add hotkey for item
+    if (ImGui::BeginMenu("Add hotkey")) {
+      TabGroup& hotkeys = tabs.at(StaticTabGroups::HOTKEYS);
+      if (ImGui::MenuItem("Slot 1"))  { hotkeys[0] = info; }
+      if (ImGui::MenuItem("Slot 2"))  { hotkeys[1] = info; }
+      if (ImGui::MenuItem("Slot 3"))  { hotkeys[2] = info; }
+      if (ImGui::MenuItem("Slot 4"))  { hotkeys[3] = info; }
+      if (ImGui::MenuItem("Slot 5"))  { hotkeys[4] = info; }
+      if (ImGui::MenuItem("Slot 6"))  { hotkeys[5] = info; }
+      if (ImGui::MenuItem("Slot 7"))  { hotkeys[6] = info; }
+      if (ImGui::MenuItem("Slot 8"))  { hotkeys[7] = info; }
+      if (ImGui::MenuItem("Slot 9"))  { hotkeys[8] = info; }
+      if (ImGui::MenuItem("Slot 10")) { hotkeys[9] = info; }
+      ImGui::EndMenu();
+    }
+
+    // Open in file explorer
+    if (ImGui::MenuItem("Open in file explorer")) {
+      std::wstring path;
+      getWindowExecutablePath(info->hwnd, path);
+      openWindowsExplorerAtPath(path);
     }
     ImGui::EndPopup();
   }
@@ -145,7 +179,7 @@ void ImGuiUI::_renderTabCell(const std::string& group_title, const std::shared_p
 }
 
 
-void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, const TabGroupLayout layout) {
+void ImGuiUI::_renderTabGroup(TabGroupMap& tab_groups, const std::string& title, const TabGroup tabs, const TabGroupLayout layout) {
   // Constants
   static constexpr ImGuiTableFlags TABLE_FLAGS = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoPadOuterX;
   static constexpr ImVec2 CELL_SIZE = ImVec2(640.0f, 360.0f);
@@ -157,19 +191,21 @@ void ImGuiUI::_renderTabGroup(const std::string& title, const TabGroup tabs, con
   // Draw table
   if (ImGui::BeginTable(TABLE_NAME.c_str(), COLUMNS, TABLE_FLAGS)) {
     for (const auto& tab : tabs) {
+      // Skip broken tabs
+      if (tab == nullptr) {
+        std::cout << "NULL tab detected in: '" << title << "'\n";
+        continue;
+      };
       ImGui::TableNextColumn();
 
       // Render cell
       ImGui::BeginGroup();
-      _renderTabCell(title, tab, layout, CELL_SIZE);
+      _renderTabCell(tab_groups, title, tab, layout, CELL_SIZE);
       ImGui::EndGroup();
     }
     ImGui::EndTable();
   }
 }
-
-
-// -------------------------------- UI Rendering --------------------------------
 
 
 void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
@@ -183,6 +219,8 @@ void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutLi
     // Sort by last focused time
     std::sort(tabs.begin(), tabs.end(),
       [](const std::shared_ptr<WindowInfo>& a, const std::shared_ptr<WindowInfo>& b) {
+        if (a == nullptr) return false;
+        if (b == nullptr) return true;
         return a->last_focused > b->last_focused;
       }
     );
@@ -194,7 +232,7 @@ void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutLi
     const TabGroupLayout LAYOUT = tab_group_layouts.at(title);
     if (ImGui::Begin(title.c_str(), nullptr, WINDOW_FLAGS)) {
       // Render the tab group
-      _renderTabGroup(title, tabs, LAYOUT);
+      _renderTabGroup(tab_groups, title, tabs, LAYOUT);
 
 
       // --- Check if it needs a redraw ---
@@ -221,21 +259,23 @@ void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotk
 
   if (Config::hotkey_panel_horizontal_layout) { // horizontal Layout
     // Bottom-left corner placement
-    const ImVec2 size(
+    const ImVec2 hotkey_window_size(
       Config::monitor_size.x * _HOTKEY_PANEL_LENGTH_PERCENT / 100.0f,
       Config::monitor_size.x * _HOTKEY_PANEL_HEIGHT_PERCENT / 100.0f
     );
-    ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(hotkey_window_size, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2(0.0f, Config::monitor_size.y), ImGuiCond_Always, _BOTTOM_LEFT_CORNER_POS);
     
     
     if (ImGui::Begin("Hotkeys", &_hotkey_panel_visible, HOTKEY_PANEL_FLAGS)) {
       // --- Main Content Area ---
       if (ImGui::BeginChild("Main Content Area")) {
-
+        for (int i = 0; i < 10; i++) {
+          if (hotkeys[i] == nullptr) continue;
+          ImGui::Text("[%d] %s", i + 1, hotkeys[i]->title.c_str());
+        }
       }
       ImGui::EndChild();
-
 
 
       // Check if it needs a redraw
@@ -264,7 +304,10 @@ void ImGuiUI::_renderHotkeyUI(const TabGroup& hotkeys, const TabGroupLayout hotk
     if (ImGui::Begin("Hotkeys", &_hotkey_panel_visible, HOTKEY_PANEL_FLAGS)) {
       // --- Main Content Area ---
       if (ImGui::BeginChild("Main Content Area")) {
-
+        for (int i = 0; i < 10; i++) {
+          if (hotkeys[i] == nullptr) continue;
+          ImGui::Text("[%d] %s", i + 1, hotkeys[i]->title.c_str());
+        }
       }
       ImGui::EndChild();
 
@@ -305,13 +348,7 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
     {
       // NOTE: Style/Color changes for the toolbar background can go here
 
-      // Toolbar Buttons
-      if (ImGui::Button("📂 New Project")) {
-        // Handle 'New Project' action
-      }
-      ImGui::SameLine(); // Puts the next widget on the same line
-
-      if (ImGui::Button("💾 Save")) {
+      if (ImGui::Button("Save")) {
         // Handle 'Save' action
         if (Config::save()) {
           std::cout << "Saved Config as '" << Config::CONFIG_SAVE_PATH << "'" << std::endl;
@@ -322,7 +359,7 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
       }
       ImGui::SameLine();
 
-      if (ImGui::Button("↩️ Undo")) {
+      if (ImGui::Button("↩ Undo")) {
         // Handle 'Undo' action
         _request_saved_config_reset = true;
         std::cout << "Removing staged changes from the config." << std::endl;
@@ -414,8 +451,8 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
         static float width_tmp = Config::settings_panel_width_percent;
         static float height_tmp = Config::settings_panel_height_percent;
 
-        syncTemp(width_tmp, Config::settings_panel_width_percent);
-        syncTemp(height_tmp,Config::settings_panel_height_percent);
+        _syncTemp(width_tmp, Config::settings_panel_width_percent);
+        _syncTemp(height_tmp,Config::settings_panel_height_percent);
 
         ImGui::PushItemWidth(SLIDER_WIDTH);
         if (ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.1f")) {

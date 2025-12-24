@@ -385,7 +385,7 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   // Tab groups
   _tab_groups[StaticTabGroups::OPEN_TABS] = getAllAltTabWindows();
   _tab_group_layouts[StaticTabGroups::OPEN_TABS] = TabGroupLayout::GRID;
-  _tab_groups[StaticTabGroups::HOTKEYS] = {};
+  _tab_groups[StaticTabGroups::HOTKEYS] = TabGroup(10, nullptr); // Create 10-element vector.
   _tab_group_layouts[StaticTabGroups::HOTKEYS] = TabGroupLayout::GRID;
   // TODO: Render tab groups from config.json
 
