@@ -41,6 +41,8 @@ std::array<Keybind, 10> Config::keybinds = {
 // ---------------- init & save ----------------
 
 void Config::init() {
+  // TODO: Implement a config.json creating system IF there is no existing file.
+
   resetToSaved();
 
   // In-program initialized vars
