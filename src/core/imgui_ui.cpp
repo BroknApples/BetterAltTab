@@ -91,22 +91,25 @@ void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, 
   // Total size: image + text
   ImGuiStyle& style = ImGui::GetStyle();
   const float LINE_HEIGHT = ImGui::GetTextLineHeight();
-  const float Y_PADDING = style.FramePadding.y;
-  const ImVec2 TOTAL_SIZE = ImVec2(cell_size.x, cell_size.y + LINE_HEIGHT + Y_PADDING);
+  const ImVec2 PADDING = style.FramePadding;
+  const ImVec2 TOTAL_SIZE = ImVec2((cell_size.x + PADDING.x), (cell_size.y + (LINE_HEIGHT * 2.0f) + PADDING.y));
   const std::string LABEL_ID = info->title + "_" + group_title;
 
   // Get text substr
   const std::string TEXT_SUBSTR = _fitStringToWidth(info->title, cell_size.x, true);
+  const ImVec2 TEXT_SIZE = ImGui::CalcTextSize(TEXT_SUBSTR.c_str());
   
-  // Push a unique ID for this cell
+  // Push ID
   ImGui::PushID(info.get());
   
-  // Create invisible button for the entire area
-  if (ImGui::InvisibleButton("Cell", TOTAL_SIZE)) {
-    // std::cout << "[CLICKED] " << info->title << std::endl;
-    focusWindow(info->hwnd);
-    setWindowJustFocused(true);
-  }
+  // Create selectable area --> Acts as a button.
+  bool selected = false;
+  const bool activated = ImGui::Selectable(
+    "##Cell",
+    selected,
+    ImGuiSelectableFlags_AllowDoubleClick,
+    TOTAL_SIZE
+  );
 
   // Context-menu
   if (ImGui::BeginPopupContextItem("MyButtonContext")) {
@@ -168,11 +171,36 @@ void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, 
     ImGui::EndPopup();
   }
 
-  // Set cursor pos
-  ImVec2 pos = ImGui::GetItemRectMin();
-  ImGui::SetCursorScreenPos(pos);
-  ImGui::Text("%s", TEXT_SUBSTR.c_str());           // Draw text
-  ImGui::Image((ImTextureID)info->tex, cell_size);  // Draw image below the text
+  // Get sizes for draw list
+  const ImVec2 RECT_MIN = ImGui::GetItemRectMin();
+  const ImVec2 SIZE = ImGui::GetItemRectSize();
+
+  ImDrawList* dl = ImGui::GetWindowDrawList();
+
+  // Compute positions to center
+  const ImVec2 TEXT_POS = ImVec2(
+    RECT_MIN.x + (SIZE.x - TEXT_SIZE.x) * 0.5f, // center horizontally
+    RECT_MIN.y + 5.0f                           // small top padding
+  );
+
+  const ImVec2 IMAGE_POS_0 = ImVec2(
+    RECT_MIN.x + (SIZE.x - cell_size.x) * 0.5f, // center horizontally
+    TEXT_POS.y + TEXT_SIZE.y + 5.0f             // below text with spacing
+  );
+
+  const ImVec2 IMAGE_POS_1 = ImVec2(
+    IMAGE_POS_0.x + cell_size.x,
+    IMAGE_POS_0.y + cell_size.y
+  );
+
+  // Draw
+  dl->AddText(TEXT_POS, IM_COL32_WHITE, TEXT_SUBSTR.c_str());
+  dl->AddImage((ImTextureID)info->tex, IMAGE_POS_0, IMAGE_POS_1);
+
+  if (activated) {
+    focusWindow(info->hwnd);
+    setWindowJustFocused(true);
+  }
 
   // Remove unique ID for this cell
   ImGui::PopID();
@@ -181,11 +209,11 @@ void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, 
 
 void ImGuiUI::_renderTabGroup(TabGroupMap& tab_groups, const std::string& title, const TabGroup tabs, const TabGroupLayout layout) {
   // Constants
-  static constexpr ImGuiTableFlags TABLE_FLAGS = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoPadOuterX;
-  static constexpr ImVec2 CELL_SIZE = ImVec2(640.0f, 360.0f);
+  static constexpr ImGuiTableFlags TABLE_FLAGS = ImGuiTableFlags_NoPadOuterX | ImGuiWindowFlags_AlwaysVerticalScrollbar;
+  const ImVec2 CELL_SIZE = ImVec2(Config::tab_groups_tab_width, Config::tab_groups_tab_height);
   const float PADDING = ImGui::GetStyle().ItemSpacing.x;
-  const float AVAIL = ImGui::GetContentRegionAvail().x;
-  const int COLUMNS = std::max(static_cast<int>(AVAIL / (CELL_SIZE.x + PADDING)), 1); // Must have AT LEAST 1 column
+  const float AVAIL_X = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ScrollbarSize;
+  const int COLUMNS = std::max(static_cast<int>(AVAIL_X / (CELL_SIZE.x + PADDING)), 1); // Must have AT LEAST 1 column
   const std::string TABLE_NAME = std::string(title + " - Tab Grid");
 
   // Draw table
@@ -197,6 +225,12 @@ void ImGuiUI::_renderTabGroup(TabGroupMap& tab_groups, const std::string& title,
         continue;
       };
       ImGui::TableNextColumn();
+
+      // Add manual padding to the first column
+      // TODO: Find a way to fix the cell rendering so this isn't needed
+      if (ImGui::TableGetColumnIndex() == 0) { 
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetStyle().WindowPadding.x);
+      }
 
       // Render cell
       ImGui::BeginGroup();
@@ -376,7 +410,35 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
     // --- Main Content Area ---
     if (ImGui::BeginChild("Main Content Area", MAIN_CONTENT_SIZE)) {
       if (ImGui::CollapsingHeader("Tab Groups Options")) {
+        // Tab Item Width/Height
+        {
+          constexpr float TAB_GROUPS_TAB_ITEM_MIN_WIDTH = 360.0f;
+          constexpr float TAB_GROUPS_TAB_ITEM_MAX_WIDTH = 1920.0f;
+          constexpr float TAB_GROUPS_TAB_ITEM_MIN_HEIGHT = 203.0f;
+          constexpr float TAB_GROUPS_TAB_ITEM_MAX_HEIGHT = 1080.0f;
+          static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.80f * 4.0f; // Boxes are the size of 4 characters
+          static float width_tmp = Config::tab_groups_tab_width;
+          static float height_tmp = Config::tab_groups_tab_height;
 
+          _syncTemp(width_tmp, Config::tab_groups_tab_width);
+          _syncTemp(height_tmp,Config::tab_groups_tab_height);
+
+          ImGui::PushItemWidth(SLIDER_WIDTH);
+          if (ImGui::InputFloat("Tab Width (px)", &width_tmp, 0.0f, 0.0f, "%.1f")) {
+            width_tmp = std::clamp(width_tmp, TAB_GROUPS_TAB_ITEM_MIN_WIDTH, TAB_GROUPS_TAB_ITEM_MAX_WIDTH);
+          }
+          if (!ImGui::IsItemActive() && (width_tmp != Config::tab_groups_tab_width)) {
+            Config::tab_groups_tab_width = width_tmp;
+          }
+          ImGui::SameLine(0.0f, SLIDER_WIDTH);
+          if (ImGui::InputFloat("Tab Height (px)", &height_tmp, 0.0f, 0.0f, "%.1f")) {
+            height_tmp = std::clamp(height_tmp, TAB_GROUPS_TAB_ITEM_MIN_HEIGHT, TAB_GROUPS_TAB_ITEM_MAX_HEIGHT);
+          }
+          if (!ImGui::IsItemActive() && (height_tmp != Config::tab_groups_tab_height)) {
+            Config::tab_groups_tab_height = height_tmp;
+          }
+          ImGui::PopItemWidth();
+        }
       }
       
       if (ImGui::CollapsingHeader("Hotkey Panel Options")) {
@@ -443,32 +505,34 @@ void ImGuiUI::_renderSettingsUI(const double fps, const double delta) {
 
       if (ImGui::CollapsingHeader("Settings Panel Options")) {
         // Panel Width/Height
-        constexpr float SETTINGS_PANEL_MIN_WIDTH = 20.0f;
-        constexpr float SETTINGS_PANEL_MAX_WIDTH = 100.0f;
-        constexpr float SETTINGS_PANEL_MIN_HEIGHT = 20.0f;
-        constexpr float SETTINGS_PANEL_MAX_HEIGHT = 100.0f;
-        static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.80f * 4.0f; // Boxes are the size of 4 characters
-        static float width_tmp = Config::settings_panel_width_percent;
-        static float height_tmp = Config::settings_panel_height_percent;
+        {
+          constexpr float SETTINGS_PANEL_MIN_WIDTH = 20.0f;
+          constexpr float SETTINGS_PANEL_MAX_WIDTH = 100.0f;
+          constexpr float SETTINGS_PANEL_MIN_HEIGHT = 20.0f;
+          constexpr float SETTINGS_PANEL_MAX_HEIGHT = 100.0f;
+          static const float SLIDER_WIDTH = ImGui::GetFontSize() * 0.80f * 4.0f; // Boxes are the size of 4 characters
+          static float width_tmp = Config::settings_panel_width_percent;
+          static float height_tmp = Config::settings_panel_height_percent;
 
-        _syncTemp(width_tmp, Config::settings_panel_width_percent);
-        _syncTemp(height_tmp,Config::settings_panel_height_percent);
+          _syncTemp(width_tmp, Config::settings_panel_width_percent);
+          _syncTemp(height_tmp,Config::settings_panel_height_percent);
 
-        ImGui::PushItemWidth(SLIDER_WIDTH);
-        if (ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.1f")) {
-          width_tmp = std::clamp(width_tmp, SETTINGS_PANEL_MIN_WIDTH, SETTINGS_PANEL_MAX_WIDTH);
+          ImGui::PushItemWidth(SLIDER_WIDTH);
+          if (ImGui::InputFloat("Panel Width (%)", &width_tmp, 0.0f, 0.0f, "%.1f")) {
+            width_tmp = std::clamp(width_tmp, SETTINGS_PANEL_MIN_WIDTH, SETTINGS_PANEL_MAX_WIDTH);
+          }
+          if (!ImGui::IsItemActive() && (width_tmp != Config::settings_panel_width_percent)) {
+            Config::settings_panel_width_percent = width_tmp;
+          }
+          ImGui::SameLine(0.0f, SLIDER_WIDTH);
+          if (ImGui::InputFloat("Panel Height (%)", &height_tmp, 0.0f, 0.0f, "%.1f")) {
+            height_tmp = std::clamp(height_tmp, SETTINGS_PANEL_MIN_HEIGHT, SETTINGS_PANEL_MAX_HEIGHT);
+          }
+          if (!ImGui::IsItemActive() && (height_tmp != Config::settings_panel_height_percent)) {
+            Config::settings_panel_height_percent = height_tmp;
+          }
+          ImGui::PopItemWidth();
         }
-        if (!ImGui::IsItemActive() && (width_tmp != Config::settings_panel_width_percent)) {
-          Config::settings_panel_width_percent = width_tmp;
-        }
-        ImGui::SameLine(0.0f, SLIDER_WIDTH);
-        if (ImGui::InputFloat("Panel Height (%)", &height_tmp, 0.0f, 0.0f, "%.1f")) {
-          height_tmp = std::clamp(height_tmp, SETTINGS_PANEL_MIN_HEIGHT, SETTINGS_PANEL_MAX_HEIGHT);
-        }
-        if (!ImGui::IsItemActive() && (height_tmp != Config::settings_panel_height_percent)) {
-          Config::settings_panel_height_percent = height_tmp;
-        }
-        ImGui::PopItemWidth();
       }
 
       if (ImGui::CollapsingHeader("Graphics Options")) {

@@ -73,27 +73,74 @@ class Config {
 
     // JSON KEY CONSTANTS
 
-    inline static const std::string _GRAPHICS_SETTINGS = "Graphics Settings";
-    inline static const std::string _VSYNC = (_GRAPHICS_SETTINGS + "." + "V-Sync");
+    // ---------
 
-    inline static const std::string _SETTINGS_PANEL = "Settings Panel";
-    inline static const std::string _SETTINGS_PANEL_WIDTH_PERCENT = (_SETTINGS_PANEL + "." + "Settings Panel Width Percent");
-    inline static const std::string _SETTINGS_PANEL_HEIGHT_PERCENT = (_SETTINGS_PANEL + "." + "Settings Panel Height Percent");
+    inline static const std::string _TAB_GROUPS = "Tab Groups Panel";
+
+    inline static const std::string _TAB_GROUPS_TAB_WIDTH = (_TAB_GROUPS + "." + "Tab Width");
+    inline static const float _TAB_GROUPS_TAB_WIDTH_DEFAULT = 640.0f;
+
+    inline static const std::string _TAB_GROUPS_TAB_HEIGHT = (_TAB_GROUPS + "." + "Tab Height");
+    
+    inline static const float _TAB_GROUPS_TAB_HEIGHT_DEFAULT = 360.0f;
+
+    // ---------
 
     inline static const std::string _HOTKEY_PANEL = "Hotkey Panel";
-    inline static const std::string _HOTKEY_PANEL_HORIZONTAL_LAYOUT = _HOTKEY_PANEL + "." + "Horizontal Layout";
-    inline static const std::string _HOTKEY_KEYBINDS = (_HOTKEY_PANEL + "." + "Keybinds");
-    inline static const std::string _KEYBIND_SLOT1  = (_HOTKEY_KEYBINDS + "." + "Slot 1");
-    inline static const std::string _KEYBIND_SLOT2  = (_HOTKEY_KEYBINDS + "." + "Slot 2");
-    inline static const std::string _KEYBIND_SLOT3  = (_HOTKEY_KEYBINDS + "." + "Slot 3");
-    inline static const std::string _KEYBIND_SLOT4  = (_HOTKEY_KEYBINDS + "." + "Slot 4");
-    inline static const std::string _KEYBIND_SLOT5  = (_HOTKEY_KEYBINDS + "." + "Slot 5");
-    inline static const std::string _KEYBIND_SLOT6  = (_HOTKEY_KEYBINDS + "." + "Slot 6");
-    inline static const std::string _KEYBIND_SLOT7  = (_HOTKEY_KEYBINDS + "." + "Slot 7");
-    inline static const std::string _KEYBIND_SLOT8  = (_HOTKEY_KEYBINDS + "." + "Slot 8");
-    inline static const std::string _KEYBIND_SLOT9  = (_HOTKEY_KEYBINDS + "." + "Slot 9");
-    inline static const std::string _KEYBIND_SLOT10 = (_HOTKEY_KEYBINDS + "." + "Slot 10");
 
+    inline static const std::string _HOTKEY_PANEL_HORIZONTAL_LAYOUT = (_HOTKEY_PANEL + "." + "Horizontal Layout");
+    inline static const bool _HOTKEY_PANEL_HORIZONTAL_LAYOUT_DEFAULT = false;
+
+
+    inline static const std::string _HOTKEY_KEYBINDS = (_HOTKEY_PANEL + "." + "Keybinds");
+
+    inline static const std::string _KEYBIND_SLOT1  = (_HOTKEY_KEYBINDS + "." + "Slot 1");
+    inline static const std::string _KEYBIND_SLOT1_DEFAULT  = "1";
+
+    inline static const std::string _KEYBIND_SLOT2  = (_HOTKEY_KEYBINDS + "." + "Slot 2");
+    inline static const std::string _KEYBIND_SLOT2_DEFAULT  = "2";
+
+    inline static const std::string _KEYBIND_SLOT3  = (_HOTKEY_KEYBINDS + "." + "Slot 3");
+    inline static const std::string _KEYBIND_SLOT3_DEFAULT  = "3";
+
+    inline static const std::string _KEYBIND_SLOT4  = (_HOTKEY_KEYBINDS + "." + "Slot 4");
+    inline static const std::string _KEYBIND_SLOT4_DEFAULT  = "4";
+
+    inline static const std::string _KEYBIND_SLOT5  = (_HOTKEY_KEYBINDS + "." + "Slot 5");
+    inline static const std::string _KEYBIND_SLOT5_DEFAULT  = "5";
+
+    inline static const std::string _KEYBIND_SLOT6  = (_HOTKEY_KEYBINDS + "." + "Slot 6");
+    inline static const std::string _KEYBIND_SLOT6_DEFAULT  = "6";
+
+    inline static const std::string _KEYBIND_SLOT7  = (_HOTKEY_KEYBINDS + "." + "Slot 7");
+    inline static const std::string _KEYBIND_SLOT7_DEFAULT  = "7";
+
+    inline static const std::string _KEYBIND_SLOT8  = (_HOTKEY_KEYBINDS + "." + "Slot 8");
+    inline static const std::string _KEYBIND_SLOT8_DEFAULT  = "8";
+
+    inline static const std::string _KEYBIND_SLOT9  = (_HOTKEY_KEYBINDS + "." + "Slot 9");
+    inline static const std::string _KEYBIND_SLOT9_DEFAULT  = "9";
+
+    inline static const std::string _KEYBIND_SLOT10 = (_HOTKEY_KEYBINDS + "." + "Slot 10");
+    inline static const std::string _KEYBIND_SLOT10_DEFAULT = "0";
+
+    // ---------
+
+    inline static const std::string _SETTINGS_PANEL = "Settings Panel";
+
+    inline static const std::string _SETTINGS_PANEL_WIDTH_PERCENT = (_SETTINGS_PANEL + "." + "Settings Panel Width Percent");
+    inline static const float _SETTINGS_PANEL_WIDTH_PERCENT_DEFAULT = 20.0f;
+
+    inline static const std::string _SETTINGS_PANEL_HEIGHT_PERCENT = (_SETTINGS_PANEL + "." + "Settings Panel Height Percent");
+    inline static const float _SETTINGS_PANEL_HEIGHT_PERCENT_DEFAULT = 80.0f;
+
+    // ---------
+
+    inline static const std::string _GRAPHICS_SETTINGS = "Graphics Settings";
+    inline static const std::string _VSYNC = (_GRAPHICS_SETTINGS + "." + "V-Sync");
+    inline static const bool _VSYNC_DEFAULT = true;
+
+    // ---------
     
   public:
     /**
@@ -136,16 +183,20 @@ class Config {
 
     // ----------------- Settings -----------------
 
-    // Graphics
-    static bool vsync;
+    // Tab Groups
+    static float tab_groups_tab_width;
+    static float tab_groups_tab_height;
+
+    // Hotkeys Panel
+    static bool hotkey_panel_horizontal_layout;
+    static std::array<Keybind, 10> keybinds;
 
     // Settings Panel
     static float settings_panel_width_percent;  // 20% of the screen
     static float settings_panel_height_percent; // Full screen height
 
-    // Keybinds
-    static bool hotkey_panel_horizontal_layout;
-    static std::array<Keybind, 10> keybinds;
+    // Graphics
+    static bool vsync;
 };
 
 

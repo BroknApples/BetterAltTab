@@ -33,6 +33,34 @@ class JsonReader {
     inline static const std::string _JSON_EXTENSION = ".json";
 
 
+    std::vector<std::string> tokenizeKey(const std::string& key, const std::string& key_separator) {
+      // Tokenize key
+      const int KEY_LENGTH = key.length();
+      const int KEY_SEPARATOR_LENGTH = key_separator.length();
+      std::vector<std::string> keys;
+      std::string curr_key = "";
+      for (int i = 0; i < KEY_LENGTH; i++) {
+        // If the substring is the seperator, then add the gathered data
+        // to the keys list and reset the curr_key var.
+        if (i <= (KEY_LENGTH - KEY_SEPARATOR_LENGTH) && 
+            key.substr(i, KEY_SEPARATOR_LENGTH) == key_separator) {
+          keys.push_back(curr_key);
+          curr_key = "";
+
+          // Add the leftover key seperator length since it shouldn't be in the next key.
+          i += KEY_SEPARATOR_LENGTH - 1;
+        }
+        else {
+          curr_key += key[i];
+        }
+      }
+
+      // Push the last token
+      keys.push_back(curr_key);
+      return keys;
+    }
+
+
   public:
     /**
      * @brief Dummy Constructor/Destructor
@@ -124,46 +152,34 @@ class JsonReader {
     template <typename T>
     T get(const std::string& key, const T& default_value = T{}, const std::string& key_separator = ".") {
       // Tokenize key
-      const int KEY_LENGTH = key.length();
-      const int KEY_SEPARATOR_LENGTH = key_separator.length();
-      std::vector<std::string> keys;
-      std::string curr_key = "";
-      for (int i = 0; i < KEY_LENGTH; i++) {
-        // If the substring is the seperator, then add the gathered data
-        // to the keys list and reset the curr_key var.
-        if (i <= (KEY_LENGTH - KEY_SEPARATOR_LENGTH) && 
-            key.substr(i, KEY_SEPARATOR_LENGTH) == key_separator) {
-          keys.push_back(curr_key);
-          curr_key = "";
-
-          // Add the leftover key seperator length since it shouldn't be in the next key.
-          i += KEY_SEPARATOR_LENGTH - 1;
-        }
-        else {
-          curr_key += key[i];
-        }
-      }
-
-      // Push the last token
-      keys.push_back(curr_key);
-
+      const std::vector<std::string> keys = tokenizeKey(key, key_separator);
       
       // Attempt to actually get the data
       try {
         // Walk through each JSON tier
-        const nlohmann::json* current = &_json;
-        for (size_t i = 0; i < keys.size(); i++) {
-          // Can't reuse the 'curr_key' var name, sooo 'k' instead
+        nlohmann::json* current = &_json;
+        for (size_t i = 0; i < keys.size(); ++i) {
           const std::string& k = keys[i];
 
-          // Key doesn't exist
-          if (!current->contains(k)) return default_value;
+          if (i == keys.size() - 1) { // last key → insert if missing
+            if (!current->contains(k)) {
+              (*current)[k] = default_value;
+            }
 
-          current = &current->at(k); // Go deeper
+            // Try to cast to T
+            return (*current)[k].get<T>();
+          }
+
+          // intermediate → ensure object exists
+          if (!current->contains(k) || !(*current)[k].is_object()) {
+            (*current)[k] = nlohmann::json::object();
+          }
+
+          current = &(*current)[k]; // Go deeper
         }
 
-        // Try to cast to T
-        return current->get<T>();
+        // This should never be reached
+        return default_value;
       }
       catch (const std::exception& e) {
         std::cerr << "Error accessing key '" << key << "': " << e.what() << std::endl;
@@ -235,24 +251,8 @@ class JsonReader {
      */
     template <typename T>
     void set(const std::string& key, const T& value, const std::string& key_separator = ".") {
-      // Tokenize key (same logic as get)
-      const int KEY_LENGTH = key.length();
-      const int SEP_LEN = key_separator.length();
-
-      std::vector<std::string> keys;
-      std::string curr;
-
-      for (int i = 0; i < KEY_LENGTH; i++) {
-        if (i <= KEY_LENGTH - SEP_LEN &&
-          key.substr(i, SEP_LEN) == key_separator) {
-          keys.push_back(curr);
-          curr.clear();
-          i += SEP_LEN - 1;
-        } else {
-          curr += key[i];
-        }
-      }
-      keys.push_back(curr);
+      // Tokenize key
+      const std::vector<std::string> keys = tokenizeKey(key, key_separator);
 
       // Walk / create path
       nlohmann::json* current = &_json;
