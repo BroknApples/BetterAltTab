@@ -70,6 +70,24 @@ bool getWindowExecutablePath(HWND hwnd, std::wstring& path);
 
 
 /**
+ * @brief Given an hwnd, get its HICON
+ * @param hwnd: Hanlde of a window
+ * @returns HICON: Icon object
+ */
+HICON getIconFromHwnd(HWND hwnd);
+
+
+/**
+ * @brief Given an hicon, create a shader resource view for it
+ * @param device: Rendering device
+ * @param icon: Icon object
+ * @param size: Size of the icon in pixels
+ * @returns ID3D11ShaderResourceView*: DirectX11 texture
+ */
+ID3D11ShaderResourceView* createTextureFromIcon(ID3D11Device* device, HICON icon, const int size);
+
+
+/**
  * @brief Gets the title of a window from its handle
  * @param hwnd: Handle of a window
  * @returns std::string: Title of the window
@@ -301,11 +319,13 @@ struct WindowInfo {
   }
   ~WindowInfo() {
     tex->Release();
+    icon->Release();
   }
 
   HWND hwnd;
   std::string title;
   ID3D11ShaderResourceView* tex;
+  ID3D11ShaderResourceView* icon;
   std::chrono::steady_clock::time_point last_focused;
 };
 

@@ -94,6 +94,85 @@ bool getWindowExecutablePath(HWND hwnd, std::wstring& path) {
 }
 
 
+HICON getIconFromHwnd(HWND hwnd) {
+  // 1) Try big icon (taskbar / alt-tab)
+  HICON h_icon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0);
+  if (h_icon) return h_icon;
+
+  // 2) Try small icon (title bar)
+  h_icon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0);
+  if (h_icon) return h_icon;
+
+  // 3) Try small icon (alternate)
+  h_icon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL2, 0);
+  if (h_icon) return h_icon;
+
+  // 4) Fallback to class icon
+  h_icon = (HICON)GetClassLongPtr(hwnd, GCLP_HICON);
+  if (h_icon) return h_icon;
+
+  h_icon = (HICON)GetClassLongPtr(hwnd, GCLP_HICONSM);
+  return h_icon;
+}
+
+
+ID3D11ShaderResourceView* createTextureFromIcon(ID3D11Device* device, HICON icon, const int size) {
+  // Create DIB (32-bit BGRA)
+  BITMAPV5HEADER bi{};
+  bi.bV5Size        = sizeof(bi);
+  bi.bV5Width       = size;
+  bi.bV5Height      = -size;
+  bi.bV5Planes      = 1;
+  bi.bV5BitCount    = 32;
+  bi.bV5Compression = BI_BITFIELDS;
+  bi.bV5RedMask     = 0x00FF0000;
+  bi.bV5GreenMask   = 0x0000FF00;
+  bi.bV5BlueMask    = 0x000000FF;
+  bi.bV5AlphaMask   = 0xFF000000;
+
+  void* bits = nullptr;
+  HDC hdc = GetDC(nullptr);
+  HBITMAP bmp = CreateDIBSection(
+    hdc, (BITMAPINFO*)&bi,
+    DIB_RGB_COLORS, &bits, nullptr, 0
+  );
+
+  HDC memDC = CreateCompatibleDC(hdc);
+  SelectObject(memDC, bmp);
+
+  DrawIconEx(memDC, 0, 0, icon, size, size, 0, nullptr, DI_NORMAL);
+
+  // Create D3D texture directly from DIB memory
+  D3D11_TEXTURE2D_DESC desc{};
+  desc.Width = size;
+  desc.Height = size;
+  desc.MipLevels = 1;
+  desc.ArraySize = 1;
+  desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  desc.SampleDesc.Count = 1;
+  desc.Usage = D3D11_USAGE_IMMUTABLE;
+  desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+  D3D11_SUBRESOURCE_DATA data{};
+  data.pSysMem = bits;
+  data.SysMemPitch = size * 4;
+
+  ID3D11Texture2D* tex = nullptr;
+  ID3D11ShaderResourceView* srv = nullptr;
+
+  device->CreateTexture2D(&desc, &data, &tex);
+  device->CreateShaderResourceView(tex, nullptr, &srv);
+
+  tex->Release();
+
+  DeleteDC(memDC);
+  DeleteObject(bmp);
+  ReleaseDC(nullptr, hdc);
+
+  return srv;
+}
+
+
 std::string getWindowTitle(HWND hwnd) {
   // Check if window still exists
   if (!IsWindow(hwnd)) return "";
@@ -190,6 +269,13 @@ void updateWindowInfoListTextures(std::vector<std::shared_ptr<WindowInfo>>& list
     // Only set a new texture if its valid
     if (tmp != nullptr) {
       ptr->tex = tmp;
+    }
+
+    // If icon is null, set it.
+    if (ptr->icon == nullptr) {
+      // TODO: Find a clean way to do this only once since it only needs
+      // to happen once when you create the WindowInfo object for it.
+      ptr->icon = createTextureFromIcon(pd3d_device, getIconFromHwnd(ptr->hwnd), 128);
     }
   }
 }

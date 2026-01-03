@@ -195,7 +195,7 @@ void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, 
 
   // Draw
   dl->AddText(TEXT_POS, IM_COL32_WHITE, TEXT_SUBSTR.c_str());
-  dl->AddImage((ImTextureID)info->tex, IMAGE_POS_0, IMAGE_POS_1);
+  dl->AddImage(reinterpret_cast<ImTextureID>(info->tex), IMAGE_POS_0, IMAGE_POS_1);
 
   if (activated) {
     focusWindow(info->hwnd);
