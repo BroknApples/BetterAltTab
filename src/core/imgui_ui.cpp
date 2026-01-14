@@ -242,14 +242,21 @@ void ImGuiUI::_renderTabGroup(TabGroupMap& tab_groups, const std::string& title,
 }
 
 
-void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
+void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, TabGroupOrderList& tab_groups_order, const TabGroupLayoutList& tab_groups_layouts) {
   static constexpr ImGuiWindowFlags WINDOW_FLAGS = ImGuiCond_None;
 
   // Static maps to store last position and size per window
   static std::unordered_map<std::string, ImVec2> last_pos;
   static std::unordered_map<std::string, ImVec2> last_size;
+
+  TabGroupOrderList new_order = tab_groups_order;
   
-  for (auto& [title, tabs] : tab_groups) {
+  // NOTE: Render starting at index 1 since HOTKEYS will always be index 1.
+  const int TOTAL_TAB_GROUPS = tab_groups_order.size();
+  for (int i = 1; i < TOTAL_TAB_GROUPS; i++) {
+    const std::string& title = tab_groups_order[i];
+    auto& tabs = tab_groups[title];
+
     // Sort by last focused time
     std::sort(tabs.begin(), tabs.end(),
       [](const std::shared_ptr<WindowInfo>& a, const std::shared_ptr<WindowInfo>& b) {
@@ -259,15 +266,20 @@ void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutLi
       }
     );
 
-    // Skip hotkeys, this group has it's own special rendering function
-    if (title == StaticTabGroups::HOTKEYS) continue;
-
     // Create window
-    const TabGroupLayout LAYOUT = tab_group_layouts.at(title);
+    const TabGroupLayout LAYOUT = tab_groups_layouts.at(title);
     if (ImGui::Begin(title.c_str(), nullptr, WINDOW_FLAGS)) {
       // Render the tab group
       _renderTabGroup(tab_groups, title, tabs, LAYOUT);
 
+      // Window was clicked, set to index 1 in the order list
+      if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        const auto it = std::find(new_order.begin(), new_order.end(), title);
+        if (it != new_order.end() && it != new_order.begin() + 1) {
+          new_order.erase(it);
+          new_order.insert(new_order.begin() + 1, title);
+        }
+      }
 
       // --- Check if it needs a redraw ---
 
@@ -285,6 +297,8 @@ void ImGuiUI::_renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutLi
     }
     ImGui::End();
   }
+
+  tab_groups_order = std::move(new_order);;
 }
 
 
@@ -689,7 +703,7 @@ void ImGuiUI::setupImGuiStyles() {
 // -------------------------------- Draw UI --------------------------------
 
 void ImGuiUI::drawUI(const double fps, const double delta,
-    TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts) {
+    TabGroupMap& tab_groups, TabGroupOrderList& tab_groups_order, const TabGroupLayoutList& tab_groups_layouts) {
   // Apply settings resets
   if (_request_saved_config_reset) {
     Config::resetToSaved();
@@ -701,7 +715,7 @@ void ImGuiUI::drawUI(const double fps, const double delta,
   bool userInteracted = io.WantCaptureMouse || io.WantCaptureKeyboard;
   if (userInteracted) {setNeedsIoRedraw(true); }
 
-  if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_group_layouts); }
-  if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(StaticTabGroups::HOTKEYS), tab_group_layouts.at(StaticTabGroups::HOTKEYS)); }
+  if (_tab_groups_visible)      { _renderTabGroupsUI(tab_groups, tab_groups_order, tab_groups_layouts); }
+  if (_hotkey_panel_visible)    { _renderHotkeyUI(tab_groups.at(StaticTabGroups::HOTKEYS), tab_groups_layouts.at(StaticTabGroups::HOTKEYS)); }
   if (_settings_panel_visible)  { _renderSettingsUI(fps, delta); }
 }

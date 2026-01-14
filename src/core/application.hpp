@@ -77,7 +77,8 @@ class Application {
     static bool _overlay_visible;
     static FpsTimer _fps_timer;
     static TabGroupMap _tab_groups; // { {Name of Tab Group : {Items}} , {Name of Tab Group : {Items}} , ... }
-    static TabGroupLayoutList _tab_group_layouts;
+    static TabGroupOrderList _tab_groups_order; // { {Name of Tab Group : <draw priority>} , {Name of Tab Group : <draw priority>} , ... }
+    static TabGroupLayoutList _tab_groups_layouts;
 
 
     // ---------------- Functions  ----------------

@@ -22,7 +22,8 @@ HWINEVENTHOOK  Application::_hook = nullptr;
 bool               Application::_overlay_visible = false;
 FpsTimer           Application::_fps_timer{};
 TabGroupMap        Application::_tab_groups{};
-TabGroupLayoutList Application::_tab_group_layouts{};
+TabGroupOrderList  Application::_tab_groups_order{};
+TabGroupLayoutList Application::_tab_groups_layouts{};
 
 
 // ---------------- DirectX functions ----------------
@@ -384,9 +385,11 @@ bool Application::createApplication(HINSTANCE& h_instance) {
   
   // Tab groups
   _tab_groups[StaticTabGroups::OPEN_TABS] = getAllAltTabWindows();
-  _tab_group_layouts[StaticTabGroups::OPEN_TABS] = TabGroupLayout::GRID;
+  _tab_groups_order.push_back(StaticTabGroups::OPEN_TABS); // Insert to list
+  _tab_groups_layouts[StaticTabGroups::OPEN_TABS] = TabGroupLayout::GRID;
   _tab_groups[StaticTabGroups::HOTKEYS] = TabGroup(10, nullptr); // Create 10-element vector.
-  _tab_group_layouts[StaticTabGroups::HOTKEYS] = TabGroupLayout::GRID;
+  _tab_groups_order.insert(_tab_groups_order.begin(), StaticTabGroups::HOTKEYS); // Insert at position 0, never change it's spot ==> This means it's always on top
+  _tab_groups_layouts[StaticTabGroups::HOTKEYS] = TabGroupLayout::GRID;
   // TODO: Render tab groups from config.json
 
   // ImGui Widgets
@@ -435,7 +438,7 @@ void Application::runApplication() {
     // Draw UI onto buffer
     _fps_timer.update();
     if (_overlay_visible) {
-      ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta(), _tab_groups, _tab_group_layouts);
+      ImGuiUI::drawUI(_fps_timer.getFps(), _fps_timer.getDelta(), _tab_groups, _tab_groups_order, _tab_groups_layouts);
     }
 
     // If a window was just focused, then set all items to not visible

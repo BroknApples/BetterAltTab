@@ -46,6 +46,7 @@ using TabGroupMap =
     std::string,
     TabGroup
   >;
+using TabGroupOrderList = std::vector<std::string>;
 using TabGroupLayoutList =
   std::unordered_map<
     std::string,
@@ -80,6 +81,7 @@ class ImGuiUI {
 
     static double _fps_display_accumulator;
     static bool _request_saved_config_reset;
+    static std::string _last_clicked_tab_group;
 
 
     // Render Helpers
@@ -126,9 +128,10 @@ class ImGuiUI {
     /**
      * @brief Render each tab group on the screen
      * @param tab_groups: Map of tab groups to render
-     * @param tab_group_layouts: Map of the layout for each tab group
+     * @param tab_groups_order: List of the ordering of tab groups
+     * @param tab_groups_layouts: Map of the layout for each tab group
      */
-    static void _renderTabGroupsUI(TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts);
+    static void _renderTabGroupsUI(TabGroupMap& tab_groups, TabGroupOrderList& tab_groups_order, const TabGroupLayoutList& tab_group_layouts);
 
 
     /**
@@ -171,10 +174,11 @@ class ImGuiUI {
     /**
      * @brief Draws all UI elements that should be drawn (must be visible)
      * @param tab_groups: Tab groups to render
-     * @param tab_group_layouts: Layout to render the tab groups with
+     * @param tab_groups_order: List of the order to render tab groups
+     * @param tab_groups_layouts: Layout to render the tab groups with
      */
     static void drawUI(const double fps, const double delta,
-      TabGroupMap& tab_groups, const TabGroupLayoutList& tab_group_layouts
+      TabGroupMap& tab_groups, TabGroupOrderList& tab_groups_order, const TabGroupLayoutList& tab_groups_layouts
     );
 
 
