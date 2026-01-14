@@ -13,6 +13,7 @@ bool ImGuiUI::_settings_panel_visible = false;
 
 double ImGuiUI::_fps_display_accumulator = 0.0;
 bool ImGuiUI::_request_saved_config_reset = false;
+int ImGuiUI::_tab_marker_pos = 0;
 
 
 // ----------------- Private Functions -----------------
@@ -87,10 +88,11 @@ std::string ImGuiUI::_fitStringToWidth(const std::string& str, const float max_w
 // -------------------------------- UI Rendering --------------------------------
 
 
-void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size) {
+void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size, const int cell_idx) {
   // Total size: image + text
   ImGuiStyle& style = ImGui::GetStyle();
   const float LINE_HEIGHT = ImGui::GetTextLineHeight();
+  const ImVec2 CELL_POS = ImGui::GetCursorScreenPos();
   const ImVec2 PADDING = style.FramePadding;
   const ImVec2 TOTAL_SIZE = ImVec2((cell_size.x + PADDING.x), (cell_size.y + (LINE_HEIGHT * 2.0f) + PADDING.y));
   const std::string LABEL_ID = info->title + "_" + group_title;
@@ -171,32 +173,50 @@ void ImGuiUI::_renderTabCell(TabGroupMap& tabs, const std::string& group_title, 
     ImGui::EndPopup();
   }
 
-  // Get sizes for draw list
-  const ImVec2 RECT_MIN = ImGui::GetItemRectMin();
-  const ImVec2 SIZE = ImGui::GetItemRectSize();
 
-  ImDrawList* dl = ImGui::GetWindowDrawList();
-
-  // Compute positions to center
   const ImVec2 TEXT_POS = ImVec2(
-    RECT_MIN.x + (SIZE.x - TEXT_SIZE.x) * 0.5f, // center horizontally
-    RECT_MIN.y + 5.0f                           // small top padding
+    CELL_POS.x + (cell_size.x - TEXT_SIZE.x) * 0.5f,
+    CELL_POS.y + 5.0f // small top padding
   );
 
   const ImVec2 IMAGE_POS_0 = ImVec2(
-    RECT_MIN.x + (SIZE.x - cell_size.x) * 0.5f, // center horizontally
-    TEXT_POS.y + TEXT_SIZE.y + 5.0f             // below text with spacing
+    CELL_POS.x + (cell_size.x - cell_size.x) * 0.5f, // center horizontally (just cell_pos.x)
+    CELL_POS.y + TEXT_SIZE.y + 5.0f                  // below text
   );
-
+  
   const ImVec2 IMAGE_POS_1 = ImVec2(
     IMAGE_POS_0.x + cell_size.x,
     IMAGE_POS_0.y + cell_size.y
   );
-
+  
   // Draw
+  ImDrawList* dl = ImGui::GetWindowDrawList();
   dl->AddText(TEXT_POS, IM_COL32_WHITE, TEXT_SUBSTR.c_str());
   dl->AddImage(reinterpret_cast<ImTextureID>(info->tex), IMAGE_POS_0, IMAGE_POS_1);
 
+  if (cell_idx == _tab_marker_pos) {
+    // Sizes for the outline (include both text and image)
+    const float BORDER_SIZE = 2.0f;
+    ImVec2 border_min = ImVec2(
+      CELL_POS.x, 
+      CELL_POS.y
+    );
+
+    ImVec2 border_max = ImVec2(
+      CELL_POS.x + TOTAL_SIZE.x, 
+      CELL_POS.y + TOTAL_SIZE.y
+    );
+
+    dl->AddRect(
+      border_min,
+      border_max,
+      IM_COL32(255, 255, 255, 255),
+      0.0f,   // no rounding
+      0,      // no specific flags
+      BORDER_SIZE
+    );
+  }
+  
   if (activated) {
     focusWindow(info->hwnd);
     setWindowJustFocused(true);
@@ -218,24 +238,25 @@ void ImGuiUI::_renderTabGroup(TabGroupMap& tab_groups, const std::string& title,
 
   // Draw table
   if (ImGui::BeginTable(TABLE_NAME.c_str(), COLUMNS, TABLE_FLAGS)) {
+    int cell_idx = 0;
     for (const auto& tab : tabs) {
       // Skip broken tabs
       if (tab == nullptr) {
         std::cout << "NULL tab detected in: '" << title << "'\n";
         continue;
       };
+
+      // Render cell
       ImGui::TableNextColumn();
 
       // Add manual padding to the first column
       // TODO: Find a way to fix the cell rendering so this isn't needed
-      if (ImGui::TableGetColumnIndex() == 0) { 
+      if (ImGui::TableGetColumnIndex() == 0) {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetStyle().WindowPadding.x);
       }
 
-      // Render cell
-      ImGui::BeginGroup();
-      _renderTabCell(tab_groups, title, tab, layout, CELL_SIZE);
-      ImGui::EndGroup();
+      _renderTabCell(tab_groups, title, tab, layout, CELL_SIZE, cell_idx);
+      cell_idx++;
     }
     ImGui::EndTable();
   }

@@ -82,6 +82,7 @@ class ImGuiUI {
     static double _fps_display_accumulator;
     static bool _request_saved_config_reset;
     static std::string _last_clicked_tab_group;
+    static int _tab_marker_pos; // Marks the selected tab via cycling by pressing tab
 
 
     // Render Helpers
@@ -111,8 +112,9 @@ class ImGuiUI {
      * @param info: Window info to draw
      * @param layout: Layout to render with
      * @param cell_size: Size of the cell to render
+     * @param cell_idx: Index of the cell being rendered
      */
-    static void _renderTabCell(TabGroupMap& tabs, const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size);
+    static void _renderTabCell(TabGroupMap& tabs, const std::string& group_title, const std::shared_ptr<WindowInfo>& info, const TabGroupLayout layout, const ImVec2 cell_size, const int cell_idx);
 
 
     /**
